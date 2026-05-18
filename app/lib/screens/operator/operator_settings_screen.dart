@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/user.dart';
 import '../../state/auth_state.dart';
 import '../../state/operators_state.dart';
@@ -65,6 +66,32 @@ class OperatorSettingsScreen extends StatelessWidget {
                 value: entry.value,
                 palette: palette,
               ),
+            const SizedBox(height: 24),
+            _SectionTitle('Strumenti esterni', palette: palette),
+            const SizedBox(height: 8),
+            _LinkCard(
+              icon: Icons.analytics_outlined,
+              title: 'Google Analytics 4',
+              subtitle: 'Statistiche app: visitatori, conversioni, abbandoni',
+              url: 'https://analytics.google.com/',
+              palette: palette,
+            ),
+            const SizedBox(height: 8),
+            _LinkCard(
+              icon: Icons.cloud_outlined,
+              title: 'Firebase Console',
+              subtitle: 'Database, utenti, hosting, regole sicurezza',
+              url: 'https://console.firebase.google.com/project/silvestre-fotoservizi',
+              palette: palette,
+            ),
+            const SizedBox(height: 8),
+            _LinkCard(
+              icon: Icons.photo_library_outlined,
+              title: 'Cloudinary Console',
+              subtitle: 'Foto caricate dai clienti',
+              url: 'https://console.cloudinary.com/',
+              palette: palette,
+            ),
             const SizedBox(height: 24),
             _SectionTitle('Negozio', palette: palette),
             const SizedBox(height: 8),
@@ -336,15 +363,13 @@ class _OperatorsPanelState extends State<_OperatorsPanel> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 6, vertical: 1),
                                       decoration: BoxDecoration(
-                                        color: o.role == 'admin'
-                                            ? widget.palette.primary
-                                            : widget.palette.secondary,
+                                        color: widget.palette.primary,
                                         borderRadius:
                                             BorderRadius.circular(4),
                                       ),
-                                      child: Text(
-                                        o.role.toUpperCase(),
-                                        style: const TextStyle(
+                                      child: const Text(
+                                        'OPERATORE',
+                                        style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 9,
                                           fontWeight: FontWeight.w800,
@@ -368,13 +393,12 @@ class _OperatorsPanelState extends State<_OperatorsPanel> {
                               ],
                             ),
                           ),
-                          if (o.role != 'admin')
-                            IconButton(
-                              tooltip: 'Rimuovi operatore',
-                              icon: Icon(Icons.person_remove_outlined,
-                                  color: widget.palette.error),
-                              onPressed: () => _confirmRemove(o),
-                            ),
+                          IconButton(
+                            tooltip: 'Rimuovi operatore',
+                            icon: Icon(Icons.person_remove_outlined,
+                                color: widget.palette.error),
+                            onPressed: () => _confirmRemove(o),
+                          ),
                         ],
                       ),
                     )),
@@ -489,6 +513,66 @@ class _TemplateCardState extends State<_TemplateCard> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _LinkCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String url;
+  final SilvestrePalette palette;
+  const _LinkCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.url,
+    required this.palette,
+  });
+
+  Future<void> _open() async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: _open,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: palette.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: palette.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 12, color: palette.textSecondary)),
+                ],
+              ),
+            ),
+            Icon(Icons.open_in_new, size: 18, color: palette.textSecondary),
+          ],
+        ),
       ),
     );
   }

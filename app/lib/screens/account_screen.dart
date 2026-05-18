@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../i18n/translations.dart';
 import '../state/auth_state.dart';
 import '../state/cart_state.dart';
 import '../state/orders_state.dart';
@@ -102,6 +103,14 @@ class AccountScreen extends StatelessWidget {
               icon: Icons.palette_outlined,
               title: 'Tema',
               onTap: () => ThemePickerSheet.show(context),
+            ),
+            _Tile(
+              icon: Icons.language_outlined,
+              title: 'Lingua / Language',
+              subtitle: localeState.locale.languageCode == 'it'
+                  ? 'Italiano (tocca per English)'
+                  : 'English (tap for Italiano)',
+              onTap: () => localeState.toggle(),
             ),
             _Tile(
               icon: Icons.notifications_outlined,

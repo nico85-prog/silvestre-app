@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
+import 'i18n/translations.dart';
 import 'screens/auth_gate.dart';
 import 'state/catalog_images_state.dart';
 import 'theme/app_theme.dart';
@@ -23,14 +25,26 @@ class SilvestreApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<SilvestreThemeSpec>(
-      valueListenable: currentTheme,
-      builder: (context, spec, _) {
-        return MaterialApp(
-          title: 'Silvestre Fotoservizi',
-          debugShowCheckedModeBanner: false,
-          theme: spec.build(),
-          home: const AuthGate(),
+    return AnimatedBuilder(
+      animation: localeState,
+      builder: (context, _) {
+        return ValueListenableBuilder<SilvestreThemeSpec>(
+          valueListenable: currentTheme,
+          builder: (context, spec, _) {
+            return MaterialApp(
+              title: 'Silvestre Fotoservizi',
+              debugShowCheckedModeBanner: false,
+              theme: spec.build(),
+              locale: localeState.locale,
+              supportedLocales: const [Locale('it'), Locale('en')],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              home: const AuthGate(),
+            );
+          },
         );
       },
     );
