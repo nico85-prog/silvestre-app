@@ -1,0 +1,34 @@
+name: Refresh Catalog Images (Pexels)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Quali categorie aggiornare'
+        required: true
+        default: 'stampa_fotoquadro_fotoregalo'
+        type: choice
+        options:
+          - all
+          - stampa_fotoquadro_fotoregalo
+
+jobs:
+  refresh:
+    name: Re-fetch Pexels images and write Firestore
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Pexels fetch script
+        working-directory: docs
+        env:
+          FIREBASE_REFRESH_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          TARGET: ${{ github.event.inputs.target }}
+        run: python fetch_pexels_images.py

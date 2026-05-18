@@ -30,20 +30,21 @@ if not PEXELS_KEY:
 
 
 # Mapping: ogni (category_id O product_id) → query Pexels in inglese
+# Strategia: query "abstract/mockup/minimal" per evitare foto di persone reali.
 SEARCH_TERMS = {
     # Categorie
-    "cat_stampa": "family photos memories",
+    "cat_stampa": "photo prints stack abstract background",
     "cat_fotolibro": "photo album wedding scrapbook",
     "cat_calendario": "wall calendar landscape",
-    "cat_fotoquadro": "canvas wall art interior modern home",
-    "cat_fotoregalo": "personalized gift wrapped",
+    "cat_fotoquadro": "canvas wall art interior modern minimal",
+    "cat_fotoregalo": "gift wrapped boxes ribbon abstract",
     "cat_crystal": "crystal glass paperweight light",
 
-    # Prodotti stampa
-    "stampa_classica": "polaroid family memories",
-    "stampa_media": "photo print frame",
-    "stampa_panoramica": "panorama mountain landscape",
-    "plotter_grande": "poster wall print large",
+    # Prodotti stampa (no persone reali)
+    "stampa_classica": "photo prints display arrangement table",
+    "stampa_media": "framed photo print on wall mockup",
+    "stampa_panoramica": "panoramic landscape print mountain",
+    "plotter_grande": "large poster print wall mockup",
 
     # Fotolibri
     "fotolibro_15x20": "photo book album small",
@@ -55,25 +56,25 @@ SEARCH_TERMS = {
     "calendario_mensile": "monthly calendar landscape",
     "calendario_bimestrale": "calendar planner",
 
-    # Fotoquadri
-    "fotoquadro_canvas": "canvas wall art frame interior",
-    "plotter_tela": "canvas print large modern",
+    # Fotoquadri (mockup minimal)
+    "fotoquadro_canvas": "blank canvas frame interior mockup",
+    "plotter_tela": "canvas roll print art studio",
 
-    # Fotoregali
-    "magnete_grande": "fridge magnet polaroid kitchen",
-    "magnete_piccolo": "small magnet fridge",
-    "tazza": "personalized coffee mug ceramic",
-    "tshirt": "printed tshirt fashion casual",
-    "tshirt_tua": "custom tshirt print",
-    "cuscino": "decorative cushion pillow sofa",
-    "puzzle": "jigsaw puzzle pieces hobby",
-    "cucina": "kitchen accessories cooking apron",
-    "casa": "home decor desk office",
-    "tessili": "blanket bedroom cozy",
-    "borse": "tote bag shopping",
-    "pannello_muro": "wall panel art frame",
-    "pannello_appoggio": "desk frame photo",
-    "varie": "personalized gifts collection",
+    # Fotoregali (mockup/astratti)
+    "magnete_grande": "fridge magnet photo stylized abstract",
+    "magnete_piccolo": "small magnet refrigerator door",
+    "tazza": "white mug coffee cup mockup minimal",
+    "tshirt": "white tshirt blank mockup folded",
+    "tshirt_tua": "tshirt printing press abstract",
+    "cuscino": "white cushion pillow sofa minimal interior",
+    "puzzle": "jigsaw puzzle pieces wood pattern",
+    "cucina": "kitchen apron utensils still life",
+    "casa": "minimal home office desk objects",
+    "tessili": "folded blanket textile texture cozy",
+    "borse": "tote bag canvas blank mockup",
+    "pannello_muro": "wooden wall panel minimal interior",
+    "pannello_appoggio": "small picture frame desk minimal",
+    "varie": "wrapped gift boxes ribbon assortment",
 
     # Crystal 3D
     "crystal_parallel": "crystal glass engraving 3d laser",
@@ -81,6 +82,16 @@ SEARCH_TERMS = {
     "crystal_cubo": "crystal cube glass paperweight",
     "crystal_basi": "led light base illumination",
 }
+
+# Target filter: env var TARGET può ridurre le entries da aggiornare
+TARGET = os.environ.get("TARGET", "all").strip()
+if TARGET == "stampa_fotoquadro_fotoregalo":
+    PREFIXES = ("cat_stampa", "stampa_", "plotter_grande",
+                "cat_fotoquadro", "fotoquadro_", "plotter_tela",
+                "cat_fotoregalo", "magnete_", "tazza", "tshirt", "tshirt_tua",
+                "cuscino", "puzzle", "cucina", "casa", "tessili", "borse",
+                "pannello_muro", "pannello_appoggio", "varie")
+    SEARCH_TERMS = {k: v for k, v in SEARCH_TERMS.items() if k.startswith(PREFIXES)}
 
 
 def get_access_token():
