@@ -40,11 +40,11 @@ SEARCH_TERMS = {
     "cat_fotoregalo": "gift wrapped boxes ribbon abstract",
     "cat_crystal": "crystal glass paperweight light",
 
-    # Prodotti stampa (no persone reali)
-    "stampa_classica": "photo prints display arrangement table",
-    "stampa_media": "framed photo print on wall mockup",
-    "stampa_panoramica": "panoramic landscape print mountain",
-    "plotter_grande": "large poster print wall mockup",
+    # Prodotti stampa (mockup astratti, no persone reali)
+    "stampa_classica": "polaroid blank instant minimal flatlay",
+    "stampa_media": "blank photo frame minimal interior mockup",
+    "stampa_panoramica": "panoramic landscape mountain sunset no people",
+    "plotter_grande": "blank poster mockup wall minimal",
 
     # Fotolibri
     "fotolibro_15x20": "photo book album small",
@@ -56,25 +56,25 @@ SEARCH_TERMS = {
     "calendario_mensile": "monthly calendar landscape",
     "calendario_bimestrale": "calendar planner",
 
-    # Fotoquadri (mockup minimal)
-    "fotoquadro_canvas": "blank canvas frame interior mockup",
-    "plotter_tela": "canvas roll print art studio",
+    # Fotoquadri (mockup minimal, no persone)
+    "fotoquadro_canvas": "blank canvas mockup minimal interior wall",
+    "plotter_tela": "canvas roll blank art supplies still life",
 
-    # Fotoregali (mockup/astratti)
-    "magnete_grande": "fridge magnet photo stylized abstract",
-    "magnete_piccolo": "small magnet refrigerator door",
-    "tazza": "white mug coffee cup mockup minimal",
-    "tshirt": "white tshirt blank mockup folded",
-    "tshirt_tua": "tshirt printing press abstract",
-    "cuscino": "white cushion pillow sofa minimal interior",
-    "puzzle": "jigsaw puzzle pieces wood pattern",
-    "cucina": "kitchen apron utensils still life",
-    "casa": "minimal home office desk objects",
-    "tessili": "folded blanket textile texture cozy",
-    "borse": "tote bag canvas blank mockup",
-    "pannello_muro": "wooden wall panel minimal interior",
-    "pannello_appoggio": "small picture frame desk minimal",
-    "varie": "wrapped gift boxes ribbon assortment",
+    # Fotoregali (mockup/astratti, no persone)
+    "magnete_grande": "fridge magnets pattern abstract minimal",
+    "magnete_piccolo": "small magnet abstract pattern",
+    "tazza": "white ceramic mug minimal flatlay",
+    "tshirt": "blank white tshirt folded mockup minimal",
+    "tshirt_tua": "blank tshirt hanging mockup minimal",
+    "cuscino": "throw pillow minimal interior beige",
+    "puzzle": "puzzle pieces wooden tabletop pattern",
+    "cucina": "wooden cutting board kitchen utensils still life",
+    "casa": "minimal desk stationery flatlay",
+    "tessili": "folded textile fabric texture neutral",
+    "borse": "blank tote bag canvas hanging minimal",
+    "pannello_muro": "wooden wall panels minimalist interior",
+    "pannello_appoggio": "small frame desk minimal scandinavian",
+    "varie": "wrapped gift boxes flatlay minimal",
 
     # Crystal 3D
     "crystal_parallel": "crystal glass engraving 3d laser",
