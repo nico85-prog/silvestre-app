@@ -1,0 +1,37 @@
+{
+    "name": "Silvestre Fotoservizi",
+    "short_name": "Silvestre",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#F47521",
+    "description": "Stampe foto, fotolibri, calendari e regali personalizzati. Ordini in app, ritiro in negozio a Frattamaggiore (NA).",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "categories": ["photo", "shopping", "lifestyle"],
+    "lang": "it-IT",
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

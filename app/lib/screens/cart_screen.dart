@@ -1,0 +1,379 @@
+import 'package:flutter/material.dart';
+import '../models/payment.dart';
+import '../state/auth_state.dart';
+import '../state/cart_state.dart';
+import '../state/orders_state.dart';
+import '../theme/app_theme.dart';
+import '../widgets/product_image.dart';
+import 'checkout_screen.dart';
+
+class CartScreen extends StatefulWidget {
+  const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Il tuo carrello')),
+      body: AnimatedBuilder(
+        animation: cartState,
+        builder: (context, _) {
+          if (cartState.items.isEmpty) {
+            return _EmptyCart(palette: palette);
+          }
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              ...cartState.items.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: palette.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: item.photoUrls.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          item.photoUrls.first,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) =>
+                                              const Icon(
+                                                  Icons.broken_image_outlined),
+                                        ),
+                                      )
+                                    : ProductImage(
+                                        seed: 'cart_${item.id}',
+                                        width: 400,
+                                        height: 400,
+                                      ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.productName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: palette.textPrimary,
+                                        )),
+                                    Text(item.variantName,
+                                        style: TextStyle(
+                                          color: palette.textSecondary,
+                                          fontSize: 12,
+                                        )),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '€ ${item.unitPrice.toStringAsFixed(2)} × ${item.quantity} = € ${item.lineTotal.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        color: palette.primary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline,
+                                    color: palette.textSecondary),
+                                onPressed: () => cartState.removeItem(item.id),
+                              ),
+                            ],
+                          ),
+                          if (item.photoUrls.length > 1) ...[
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 40,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: item.photoUrls.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(width: 6),
+                                itemBuilder: (_, i) => ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.network(
+                                    item.photoUrls[i],
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) =>
+                                        const SizedBox(width: 40, height: 40),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  )),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _noteController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Nota per il negozio (opzionale)',
+                  hintText: 'Es. preferisco carta opaca, ritiro venerdì',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.storefront, color: palette.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Ritiro in negozio',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: palette.textPrimary,
+                              )),
+                          Text(
+                            'Via Vittorio Emanuele III, 205 — Frattamaggiore',
+                            style: TextStyle(
+                              color: palette.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      bottomNavigationBar: AnimatedBuilder(
+        animation: cartState,
+        builder: (context, _) {
+          if (cartState.items.isEmpty) return const SizedBox.shrink();
+          return SafeArea(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              decoration: BoxDecoration(
+                color: palette.background,
+                border: Border(top: BorderSide(color: palette.border)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text('Totale',
+                          style: TextStyle(color: palette.textSecondary)),
+                      const Spacer(),
+                      Text(
+                        '€ ${cartState.total.toStringAsFixed(2)}',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: palette.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.storefront),
+                      label:
+                          const Text('Invia ordine — Paga in negozio'),
+                      onPressed: _submitOrder,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _submitOrder() async {
+    final user = authState.currentUser;
+    if (user == null) return;
+
+    // Step 1: open checkout to pick payment method
+    final paymentResult = await Navigator.push<PaymentResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckoutScreen(
+          total: cartState.total,
+          customerNote: _noteController.text,
+          onNoteChanged: (v) => _noteController.text = v,
+        ),
+      ),
+    );
+    if (paymentResult == null || !mounted) return;
+
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: CircularProgressIndicator(color: palette.primary),
+      ),
+    );
+
+    String pickupCode;
+    try {
+      pickupCode = await ordersState.submitOrder(
+        userId: user.id,
+        items: cartState.items,
+        customerNote: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
+        customerName: user.displayName,
+        customerPhone: user.phone,
+        payment: paymentResult,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // close loader
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore invio ordine: $e')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context); // close loader
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Ordine inviato!'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Il negozio ha ricevuto il tuo ordine. Pagamento e ritiro in negozio.'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: palette.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: palette.primary, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.qr_code_2, color: palette.primary),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Codice ritiro',
+                          style: TextStyle(
+                              fontSize: 11, color: palette.textSecondary)),
+                      Text(
+                        pickupCode,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: palette.textPrimary,
+                          fontSize: 18,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+                'Trovi il dettaglio nella tab Ordini.',
+                style: TextStyle(fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              cartState.clear();
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('Ho capito'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyCart extends StatelessWidget {
+  final SilvestrePalette palette;
+  const _EmptyCart({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_bag_outlined,
+                size: 80, color: palette.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              'Il carrello è vuoto',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: palette.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Torna al catalogo e scegli i tuoi prodotti.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: palette.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

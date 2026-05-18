@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import '../data/mock_catalog.dart';
+import '../theme/app_theme.dart';
+import '../widgets/category_card.dart';
+import '../widgets/store_info_banner.dart';
+import 'category_products_screen.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    final textTheme = Theme.of(context).textTheme;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _HeroBanner(),
+        const SizedBox(height: 20),
+        Text(
+          'Cosa vuoi creare oggi?',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: palette.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Scegli un prodotto e parti dalle tue foto',
+          style: TextStyle(color: palette.textSecondary),
+        ),
+        const SizedBox(height: 16),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.78,
+          ),
+          itemCount: MockCatalog.categories.length,
+          itemBuilder: (context, i) {
+            final c = MockCatalog.categories[i];
+            return CategoryCard(
+              title: c.name,
+              subtitle: c.tagline,
+              icon: c.icon,
+              imageSeed: 'cat_${c.id}_$i',
+              categoryId: c.id,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CategoryProductsScreen(category: c),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+        const StoreInfoBanner(),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _HeroBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [palette.primary, palette.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Le tue foto,\nstampate con cura',
+                  style: textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Ordini in app, ritiro in negozio a Frattamaggiore',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 14),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: palette.primaryDark,
+                  ),
+                  onPressed: () {},
+                  child: const Text('Inizia ora'),
+                ),
+              ],
+            ),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.asset(
+              'assets/brand/silvestre_logo.jpg',
+              width: 88,
+              height: 88,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

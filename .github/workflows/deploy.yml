@@ -1,0 +1,49 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    name: Build Flutter web + deploy Firebase Hosting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9
+
+      - name: Install dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Static analysis
+        working-directory: app
+        run: flutter analyze
+
+      - name: Run unit tests
+        working-directory: app
+        run: flutter test
+
+      - name: Build web (release)
+        working-directory: app
+        run: flutter build web --release
+
+      - name: Copy build into firebase/public
+        run: |
+          mkdir -p firebase/public
+          rm -rf firebase/public/*
+          cp -r app/build/web/* firebase/public/
+
+      - name: Deploy to Firebase Hosting
+        uses: w9jds/firebase-action@v14.10.1
+        with:
+          args: deploy --only hosting --project silvestre-fotoservizi --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

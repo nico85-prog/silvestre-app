@@ -1,0 +1,45 @@
+# Secrets — NEVER COMMIT
+.env
+.env.local
+.env.*.local
+*.pem
+*.p12
+*.keystore
+*-service-account.json
+google-services.json
+GoogleService-Info.plist
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build outputs
+build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# Flutter
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/ServiceDefinitions.json
+
+# Cloud Functions
+firebase/functions/node_modules/
+
+# Firebase hosting build copy (rigenerato dalla CI)
+firebase/public/
+
+# Logs / temp
+*.log
+firebase-debug.log
+firestore-debug.log
+*.tmp

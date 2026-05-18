@@ -1,0 +1,21 @@
+{
+  "brand": "Silvestre Fotoservizi",
+  "colors": {
+    "primary": "#F47521",
+    "primaryDark": "#D85F12",
+    "primaryLight": "#FF9447",
+    "background": "#FFFFFF",
+    "surface": "#F7F7F7",
+    "textPrimary": "#2B2B2B",
+    "textSecondary": "#7A7A7A",
+    "border": "#E0E0E0",
+    "success": "#3DA35D",
+    "warning": "#E0A91B",
+    "error": "#D64545"
+  },
+  "typography": {
+    "headingFont": "Montserrat",
+    "bodyFont": "Inter"
+  },
+  "source": "Derived from logo (orange stripes + grey camera-S mark + white)"
+}
