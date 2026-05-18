@@ -6,13 +6,9 @@ import 'package:silvestre_app/state/auth_state.dart';
 import 'package:silvestre_app/state/cart_state.dart';
 import 'package:silvestre_app/state/orders_state.dart';
 
-// These integration tests require a real Firebase backend and Firestore
-// permissions. They can't run in CI without Firebase emulator setup. They
-// remain in the suite for local manual verification but are skipped by
-// default. To run locally: comment out _kSkip below.
-const String? _kSkip =
-    'Requires real Firebase backend; not runnable in CI without emulator.';
-
+// Integration tests requiring a real Firebase backend. File is intentionally
+// not named *_test.dart so `flutter test` skips it. To run locally rename to
+// e2e_journey_test.dart.
 void main() {
   setUp(() async {
     if (authState.isAuthenticated) {
