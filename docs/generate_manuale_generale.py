@@ -324,7 +324,7 @@ table(doc,
 doc.add_paragraph()
 p(doc, "GIÀ A POSTO (non devi fare nulla)", bold=True)
 bul(doc, [
-    "Auth Firebase + telefono OBBLIGATORIO + 2 ruoli (cliente / operatore — tutti gli operatori hanno gli stessi permessi)",
+    "Auth Firebase + telefono OBBLIGATORIO + un solo account operatore condiviso (operatore@silvestrefotoservizi.it) con permessi pieni",
     "Catalogo 30 prodotti / 193 varianti con tutte le fasce qty (modificabile via CSV)",
     "Carrello editabile + ordini real-time + photobook auto-impagina AI + lavoro personalizzato",
     "Auto-WhatsApp al cliente ad ogni cambio stato ordine (operatore preme solo Invia)",

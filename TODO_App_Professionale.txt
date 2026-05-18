@@ -122,7 +122,7 @@ LEGENDA:
 [X] Layout mobile-first (PWA stile telefono)
 [X] Theme picker 5 palette
 [X] 3 file manuali in MANUALE_GENERALE_Silvestre.docx con appendici
-[X] Account interni: admin@silvestre + operatore@silvestre (master_account.txt)
+[X] Account operatore unico condiviso: operatore@silvestrefotoservizi.it (master_account.txt)
 
 ============================================================================
   STIMA COSTI TOTALI ANNO 1

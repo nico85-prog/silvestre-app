@@ -102,7 +102,7 @@ Raw user photo uploads. Metadata mirrored in Firestore at `users/{uid}/uploads/{
 ## Security rules (high-level)
 - `users/{uid}` — owner read/write own, admin read all
 - `products`, `templates`, `settings` — public read, admin write
-- `orders` — owner read own + create, admin read/write all, staff update status
+- `orders` — owner read own + create, admin (= operatore@) read/write all
 - `designs` — owner read/write own, admin read for production
 - `uploads/{userId}` Storage — owner read/write, admin read
 

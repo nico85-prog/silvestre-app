@@ -5,8 +5,7 @@ admin e operatore di sistema.
 Triggerare via GitHub Actions workflow `purge_customers.yml` che fornisce
 FIREBASE_REFRESH_TOKEN come env var.
 
-Account preservati:
-  - admin@silvestrefotoservizi.it
+Account preservato:
   - operatore@silvestrefotoservizi.it
 """
 import io
@@ -24,7 +23,6 @@ except Exception:
 
 PROJECT_ID = "silvestre-fotoservizi"
 PRESERVE_EMAILS = {
-    "admin@silvestrefotoservizi.it",
     "operatore@silvestrefotoservizi.it",
 }
 

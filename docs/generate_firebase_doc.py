@@ -273,9 +273,16 @@ add_bullets(
     doc,
     [
         "customer \u2014 utente normale (default per chi si registra dall'app).",
-        "staff \u2014 dipendente del negozio (vede tutti gli ordini, pu\u00f2 cambiarne lo stato).",
-        "admin \u2014 proprietario (CRUD prodotti, gestione staff, cancellazione ordini).",
+        "admin \u2014 unico account operatore condiviso (operatore@silvestrefotoservizi.it). "
+        "Tutti i permessi: vede ordini, cambia stato, gestisce prodotti/prezzi, "
+        "rimuove ordini, gestisce altri account.",
     ],
+)
+add_p(
+    doc,
+    "Storicamente esistevano 3 ruoli (customer/staff/admin) ma sono stati "
+    "unificati in 2 (customer/admin) per semplicità operativa.",
+    italic=True,
 )
 
 add_heading(doc, "Permessi sintetici", level=2)
