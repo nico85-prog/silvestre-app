@@ -1,121 +1,112 @@
 """
-generate_master_doc.py — unisce TUTTI i .docx in un unico MANUALE_GENERALE_Silvestre.docx.
+generate_master_doc.py — genera tutti i .docx separati (numerati) + i .pdf corrispondenti.
 
 Workflow:
-1. Rigenera ogni singolo .docx invocando i generate_*.py
-2. Apre il manuale generale come base
-3. Aggiunge in coda: Conformità Legale, Guida Firebase, Pubblicazione App,
-   Deploy FCM Mobile — ciascuno preceduto da una pagina di copertina.
+1. Rigenera ogni .docx invocando i singoli generate_*.py
+2. Rinomina ogni file nello schema numerato 1_xxx.docx ... 5_xxx.docx
+3. Converte ciascuno in .pdf via docx2pdf (richiede Word installato)
 
-Risultato: un unico documento master con tutte le sezioni, navigabile via TOC.
+Output finale in docs/:
+  1_Manuale_Generale_Silvestre.docx + .pdf
+  2_Conformita_Legale.docx + .pdf
+  3_Guida_Firebase.docx + .pdf
+  4_Pubblicazione_App_Store.docx + .pdf
+  5_Deploy_FCM_Cloud_Functions.docx + .pdf
 """
 import os
 import subprocess
 import sys
 
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docxcompose.composer import Composer
+from docx2pdf import convert
 
 DOCS_DIR = os.path.dirname(os.path.abspath(__file__))
-MASTER_PATH = os.path.join(DOCS_DIR, "MANUALE_GENERALE_Silvestre.docx")
 
-# Ordine in cui includere i sotto-documenti dopo il manuale generale
-APPENDICES = [
-    ("Conformita_Legale_Silvestre.docx",
-     "APPENDICE A — Conformità Legale e GDPR"),
-    ("Guida_Firebase_Silvestre.docx",
-     "APPENDICE B — Guida Firebase (backend dati)"),
-    ("Pubblicazione_App_Silvestre.docx",
-     "APPENDICE C — Pubblicazione App Store / Play Store"),
-    ("Deploy_FCM_Mobile_Functions.docx",
-     "APPENDICE D — Deploy FCM e Cloud Functions"),
+# Generator script -> (default output filename, target numbered filename)
+PIPELINE = [
+    ("generate_manuale_generale.py",
+     "MANUALE_GENERALE_Silvestre.docx",
+     "1_Manuale_Generale_Silvestre.docx"),
+    ("generate_legal_doc.py",
+     "Conformita_Legale_Silvestre.docx",
+     "2_Conformita_Legale.docx"),
+    ("generate_firebase_doc.py",
+     "Guida_Firebase_Silvestre.docx",
+     "3_Guida_Firebase.docx"),
+    ("generate_launch_doc.py",
+     "Pubblicazione_App_Silvestre.docx",
+     "4_Pubblicazione_App_Store.docx"),
+    ("generate_fcm_mobile_deploy_doc.py",
+     "Deploy_FCM_Mobile_Functions.docx",
+     "5_Deploy_FCM_Cloud_Functions.docx"),
 ]
 
-GENERATORS = [
-    "generate_manuale_generale.py",
-    "generate_legal_doc.py",
-    "generate_firebase_doc.py",
-    "generate_launch_doc.py",
-    "generate_fcm_mobile_deploy_doc.py",
-]
+
+def run_generator(script):
+    path = os.path.join(DOCS_DIR, script)
+    if not os.path.exists(path):
+        print(f"  SKIP: {script} non trovato")
+        return False
+    r = subprocess.run([sys.executable, path], capture_output=True, text=True)
+    if r.returncode != 0:
+        print(f"  ERRORE {script}: {r.stderr[:300]}")
+        return False
+    return True
 
 
-def regen_all():
-    """Rigenera ogni .docx individuale."""
-    for g in GENERATORS:
-        path = os.path.join(DOCS_DIR, g)
-        if not os.path.exists(path):
-            print(f"  SKIP: {g} non trovato")
-            continue
-        print(f"  Rigenero {g}...")
-        r = subprocess.run([sys.executable, path], capture_output=True, text=True)
-        if r.returncode != 0:
-            print(f"    ERRORE: {r.stderr[:300]}")
-        else:
-            # Print last line of output
-            last = (r.stdout.strip().splitlines() or [""])[-1]
-            print(f"    {last}")
-
-
-def add_section_cover(doc, title):
-    """Aggiunge una pagina di copertina per l'appendice."""
-    doc.add_page_break()
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run("\n\n\n\n")
-    p2 = doc.add_paragraph()
-    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p2.add_run(title)
-    run.bold = True
-    run.font.size = doc.styles["Heading 1"].font.size or None
-    doc.add_page_break()
+def cleanup_stale_files():
+    """Rimuove vecchi file generati che non sono nel target schema corrente."""
+    keep = {target for _, _, target in PIPELINE}
+    keep |= {target.replace(".docx", ".pdf") for _, _, target in PIPELINE}
+    for f in os.listdir(DOCS_DIR):
+        if (f.endswith(".docx") or f.endswith(".pdf")) and f not in keep:
+            full = os.path.join(DOCS_DIR, f)
+            try:
+                os.remove(full)
+                print(f"  Pulito vecchio: {f}")
+            except Exception as e:
+                print(f"  Non posso rimuovere {f}: {e}")
 
 
 def main():
-    print("=== STEP 1: rigenero tutti i .docx individuali ===")
-    regen_all()
+    print("=== STEP 1: rigenero i .docx individuali ===")
+    for script, _, _ in PIPELINE:
+        print(f"  {script}...", end=" ")
+        if run_generator(script):
+            print("OK")
 
-    print(f"\n=== STEP 2: compongo {MASTER_PATH} ===")
-    base_path = os.path.join(DOCS_DIR, "MANUALE_GENERALE_Silvestre.docx")
-    if not os.path.exists(base_path):
-        print(f"ERRORE: {base_path} non esiste")
-        sys.exit(1)
+    print("\n=== STEP 2: rinomino nello schema numerato ===")
+    for _, default_name, target_name in PIPELINE:
+        src = os.path.join(DOCS_DIR, default_name)
+        dst = os.path.join(DOCS_DIR, target_name)
+        if os.path.exists(src):
+            if os.path.exists(dst):
+                os.remove(dst)
+            os.rename(src, dst)
+            print(f"  {default_name} -> {target_name}")
 
-    base = Document(base_path)
-    composer = Composer(base)
+    print("\n=== STEP 3: pulizia file obsoleti ===")
+    cleanup_stale_files()
 
-    for fname, title in APPENDICES:
-        path = os.path.join(DOCS_DIR, fname)
-        if not os.path.exists(path):
-            print(f"  SKIP: {fname} non trovato")
+    print("\n=== STEP 4: converto .docx -> .pdf (richiede Word installato) ===")
+    for _, _, target_name in PIPELINE:
+        docx_path = os.path.join(DOCS_DIR, target_name)
+        if not os.path.exists(docx_path):
+            print(f"  SKIP {target_name}: non esiste")
             continue
-        print(f"  Aggiungo: {title}")
+        try:
+            convert(docx_path)
+            pdf_path = docx_path.replace(".docx", ".pdf")
+            size_kb = os.path.getsize(pdf_path) / 1024
+            print(f"  {target_name} -> .pdf ({size_kb:.0f} KB)")
+        except Exception as e:
+            print(f"  ERRORE conversione {target_name}: {e}")
 
-        # Cover page con titolo appendice
-        cover_doc = Document()
-        cover_doc.add_page_break()
-        p = cover_doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for _ in range(8):
-            p.add_run("\n")
-        p2 = cover_doc.add_paragraph()
-        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p2.add_run(title)
-        run.bold = True
-        run.font.size = None  # use default
-        from docx.shared import Pt
-        run.font.size = Pt(28)
-        composer.append(cover_doc)
-
-        # Contenuto appendice
-        appendix = Document(path)
-        composer.append(appendix)
-
-    composer.save(MASTER_PATH)
-    print(f"\nOK: {MASTER_PATH}")
-    size_kb = os.path.getsize(MASTER_PATH) / 1024
-    print(f"Dimensione: {size_kb:.0f} KB")
+    print(f"\n=== DONE === File in {DOCS_DIR}")
+    for f in sorted(os.listdir(DOCS_DIR)):
+        if f.endswith((".docx", ".pdf")):
+            full = os.path.join(DOCS_DIR, f)
+            size_kb = os.path.getsize(full) / 1024
+            print(f"  {f} ({size_kb:.0f} KB)")
 
 
 if __name__ == "__main__":

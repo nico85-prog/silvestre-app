@@ -1,0 +1,145 @@
+============================================================================
+  SILVESTRE FOTOSERVIZI — TODO PER APP PROFESSIONALE
+  Aggiornato: 2026-05-18
+============================================================================
+
+LEGENDA:
+  [ ]  = da fare       [X] = fatto       [-] = opzionale/dopo
+  Stato: PRIORITA-COSTO-TEMPO
+
+============================================================================
+  TIER 1 — INDISPENSABILE PRIMA DI ACCETTARE ORDINI REALI
+============================================================================
+
+# CONTENUTI E IMMAGINI
+[ ] Sostituire foto Pexels con foto REALI dei tuoi prodotti       GRATIS-1gg
+[ ] Verificare descrizioni 30 prodotti — modifica testi/prezzi    GRATIS-1h
+[ ] Riprovare CSV listini per eventuali errori prezzo             GRATIS-30min
+[ ] Foto profilo logo Silvestre ad alta risoluzione               GRATIS-15min
+
+# PAGAMENTI (per ricevere soldi)
+[ ] Aprire Stripe Account business con PIVA                       GRATIS-2gg
+[ ] Verificare Stripe + inserire chiavi LIVE nel codice           GRATIS-30min
+[ ] Aprire Satispay Business + verifica documenti                 GRATIS-7gg
+[ ] Inserire chiavi Satispay LIVE                                 GRATIS-15min
+[ ] Definire commissioni che assorbi (es. 1.4% Stripe)            GRATIS-decis
+
+# COMUNICAZIONE CLIENTE
+[ ] Account SendGrid (free tier 100 mail/giorno)                  GRATIS-15min
+[ ] Email auto: ordine ricevuto + ordine pronto                   GRATIS-2h
+[ ] WhatsApp Business o WhatsApp standard per messaggi            GRATIS-15min
+[X] Telefono OBBLIGATORIO in registrazione (per WhatsApp pronto)  FATTO
+[-] WhatsApp Business API (Twilio) per notifiche auto             ~10€/mese
+
+# LEGALE
+[ ] Account Iubenda + compilare Privacy + Termini                 ~29€/anno-30min
+[ ] Cookie banner Iubenda integrato in app                        INCLUSO-15min
+[ ] Verifica con commercialista                                   ~50€-30min
+[ ] PIVA registrata (se non già fatto)                            GRATIS-1gg
+
+# BETA TEST
+[ ] Inviare Istruzioni_Amici_Test.txt a 5-10 conoscenti           GRATIS-10min
+[ ] Raccogliere feedback in un foglio Excel                       GRATIS-cont
+[ ] Fixare bug bloccanti emersi                                   GRATIS-var
+
+============================================================================
+  TIER 2 — ENTRO 30 GIORNI DAL LANCIO
+============================================================================
+
+# IDENTITÀ ONLINE
+[ ] Acquistare dominio silvestrefotoservizi.it (Aruba/Register)    10€/anno-15min
+[ ] Collegare dominio a Firebase Hosting (DNS + verifica)          GRATIS-1h
+[ ] App icon professionale (designer freelance o Fiverr)           50-200€-3gg
+[ ] Splash screen brand-coerente                                   GRATIS-30min
+
+# CONTATTO RAPIDO
+[ ] Bottone WhatsApp diretto in app (apre chat con il negozio)     GRATIS-30min
+[ ] Numero verde o telefono fisso visibile in app                  GIÀ-OK
+[ ] Mappa Google del negozio dentro l'app                          GRATIS-30min
+
+# MONITORING + BACKUP
+[ ] Aprire account Sentry (5000 errori/mese gratis)                GRATIS-15min
+[ ] Integrare Sentry nel codice Flutter                            GRATIS-1h
+[ ] Cloud Function backup automatico Firestore (notturno)          GRATIS-2h
+[ ] Esportare ordini in CSV mensile per commercialista             GRATIS-1h
+
+# FATTURAZIONE
+[ ] Aruba/FattureInCloud per fatture elettroniche                  25-50€/anno
+[ ] Generare ricevute PDF dall'app (per pagamenti negozio)         GRATIS-3h
+[ ] Numerazione fatture progressiva nel sistema                    GRATIS-2h
+
+============================================================================
+  TIER 3 — ESPANSIONE 3-12 MESI
+============================================================================
+
+# DISTRIBUZIONE STORE UFFICIALI
+[ ] Apple Developer Account (DUNS + 99$/anno)                      92€/anno-2sett
+[ ] Build iOS .ipa + screenshots App Store                         GRATIS-2gg
+[ ] Submission App Store (review Apple 2-7 giorni)                 GRATIS-1sett
+[ ] Google Play Developer (25$ una tantum + cartolina verifica)    23€-3sett
+[ ] Build Android .aab + screenshots Play Store                    GRATIS-1gg
+[ ] Submission Play Store (review Google 1-3 giorni)               GRATIS-3gg
+
+# MARKETING E CRESCITA
+[ ] Google Analytics 4 per capire dove i clienti si bloccano       GRATIS-30min
+[ ] Facebook Pixel / Meta Business per ads (opzionale)             GRATIS-1h
+[ ] Programma fedeltà (es. 10° ordine -20%)                        GRATIS-2gg
+[ ] Notifiche push promozionali (Black Friday, Natale)             GRATIS-2h
+[ ] Newsletter mensile email (SendGrid free)                       GRATIS-1h
+[ ] Recensioni Google My Business integrate in app                 GRATIS-1h
+
+# ACCESSIBILITÀ E QUALITÀ
+[ ] Multilingua: inglese per turisti                               GRATIS-1gg
+[ ] Test accessibilità screen reader (VoiceOver/TalkBack)          GRATIS-2h
+[ ] Migliorare contrasto colori (WCAG AA)                          GRATIS-2h
+[ ] Test su 10+ dispositivi diversi (iPhone vecchi, Android low-end) GRATIS-3h
+
+# ASSICURAZIONI E PROTEZIONE
+[ ] Polizza RC Professionale (~200-400€/anno)                      400€/anno
+[ ] Polizza Cyber Risk (~300-800€/anno)                            800€/anno
+[ ] GDPR audit annuale (commercialista o consulente)               100€/anno
+
+============================================================================
+  COSE GIÀ FATTE (NON DEVI FARE NULLA)
+============================================================================
+
+[X] Auth Firebase (email/password) — clienti possono registrarsi
+[X] Catalogo CSV dinamico (30 prodotti, 193 varianti, tutte le fasce qty)
+[X] Carrello editabile + ordini real-time
+[X] Photobook editor con auto-impagina AI
+[X] Lavoro Personalizzato (preventivo on-demand)
+[X] 3 ruoli (customer / staff / admin) con permessi Firestore
+[X] Operatore manda messaggi via WhatsApp/SMS/Email (deep link)
+[X] Codice ritiro auto-generato per ogni ordine
+[X] PWA installabile iOS Safari + Android Chrome
+[X] CI/CD GitHub Actions auto-deploy su push
+[X] Workflow manuale Refresh Catalog Images (Pexels)
+[X] Persistenza dati: account/ordini MAI cancellati ai deploy
+[X] Telefono obbligatorio in registrazione + helper WhatsApp
+[X] Quantità auto-sync con foto caricate (per stampe)
+[X] Descrizione + Quantità + Prezzo + Aggiungi nella stessa tab
+[X] Cache Service Worker bypass per visualizzare ultime modifiche
+[X] Layout mobile-first (PWA stile telefono)
+[X] Theme picker 5 palette
+[X] 3 file manuali in MANUALE_GENERALE_Silvestre.docx con appendici
+[X] Account interni: admin@silvestre + operatore@silvestre (master_account.txt)
+
+============================================================================
+  STIMA COSTI TOTALI ANNO 1
+============================================================================
+
+  TIER 1 obbligatorio: ~30-80€/anno (Iubenda) + commissioni transazioni
+  TIER 2 entro 30gg:   ~60-215€ (dominio + icona + fatture)
+  TIER 3 espansione:   ~115-1300€ (store + assicurazioni)
+
+  MINIMO REALISTICO PER PARTIRE: ~80€/anno (Iubenda + dominio)
+  PROFESSIONAL FULL: ~500-1500€/anno (tutto incluso)
+
+============================================================================
+  PROSSIMO PASSO CONSIGLIATO
+============================================================================
+
+  1. Scegli QUALE punto del TIER 1 affrontare per primo
+  2. Dimmelo e ci lavoriamo insieme passo-passo
+  3. Suggerito iniziare da: foto reali (gratis, ti diamo immediato risultato)
+     oppure Iubenda (10 minuti, sblocca tutto il GDPR)

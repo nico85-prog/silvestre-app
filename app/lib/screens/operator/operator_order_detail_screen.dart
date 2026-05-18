@@ -395,8 +395,8 @@ class _ActionPanel extends StatelessWidget {
             icon: Icons.precision_manufacturing,
             label: 'Avvia lavorazione',
             color: palette.primary,
-            onPressed: () =>
-                ordersState.updateStatus(order.id, OrderStatus.inProduction),
+            onPressed: () => _changeStatusAndNotify(
+                context, OrderStatus.inProduction, 'inProduction'),
           ),
         if (order.status == OrderStatus.inProduction)
           _ActionButton(
@@ -410,8 +410,8 @@ class _ActionPanel extends StatelessWidget {
             icon: Icons.check_circle_outline,
             label: 'Cliente ha ritirato',
             color: palette.textSecondary,
-            onPressed: () =>
-                ordersState.updateStatus(order.id, OrderStatus.pickedUp),
+            onPressed: () => _changeStatusAndNotify(
+                context, OrderStatus.pickedUp, 'pickedUp'),
           ),
         if (order.status != OrderStatus.pickedUp &&
             order.status != OrderStatus.cancelled)
@@ -434,11 +434,36 @@ class _ActionPanel extends StatelessWidget {
     );
   }
 
-  Future<void> _markReady(BuildContext context) async {
-    await ordersState.updateStatus(order.id, OrderStatus.readyForPickup);
+  /// Aggiorna lo stato dell'ordine e — se il cliente ha telefono — apre
+  /// automaticamente WhatsApp con il template messaggio per lo stato nuovo.
+  /// L'operatore deve solo premere "Invia" in WhatsApp.
+  Future<void> _changeStatusAndNotify(
+      BuildContext context, OrderStatus status, String templateKey) async {
+    await ordersState.updateStatus(order.id, status);
     if (!context.mounted) return;
-    _showMessageSheet(context, prefillTemplate: 'ready');
+
+    final phone = order.customerPhone?.trim() ?? '';
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Stato aggiornato. Cliente senza telefono: nessun messaggio inviato.'),
+            duration: Duration(seconds: 2)),
+      );
+      return;
+    }
+
+    final name = order.customerName ?? 'cliente';
+    final code = order.pickupCode;
+    final message = settingsState.renderTemplate(templateKey,
+        name: name, code: code);
+    if (message.trim().isEmpty) return;
+
+    await MessagingService.sendWhatsApp(phone: phone, message: message);
   }
+
+  Future<void> _markReady(BuildContext context) =>
+      _changeStatusAndNotify(context, OrderStatus.readyForPickup, 'ready');
 
   Future<void> _confirmCancel(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -457,8 +482,9 @@ class _ActionPanel extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) {
-      await ordersState.updateStatus(order.id, OrderStatus.cancelled);
+    if (ok == true && context.mounted) {
+      await _changeStatusAndNotify(
+          context, OrderStatus.cancelled, 'cancelled');
     }
   }
 

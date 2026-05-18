@@ -13,6 +13,7 @@ class StoreSettings {
       'inProduction': 'Ciao {{name}}, stiamo lavorando al tuo ordine {{code}}.',
       'ready': 'Ciao {{name}}, il tuo ordine {{code}} è pronto per il ritiro! Ti aspettiamo a Frattamaggiore.',
       'pickedUp': 'Ciao {{name}}, grazie per essere passato! A presto.',
+      'cancelled': 'Ciao {{name}}, il tuo ordine {{code}} è stato annullato. Se hai dubbi contattaci.',
     },
     this.lateOrderHours = 48,
   });

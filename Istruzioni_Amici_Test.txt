@@ -8,11 +8,6 @@ di stampa foto e gadget. Bastano 3 minuti.
 
 LINK:  https://silvestre-fotoservizi.web.app
 
-
-============================================================
-  COME INSTALLARLA SULLA HOME (sembra un'app vera, no browser)
-============================================================
-
 --- iPhone (Safari) ---
 1. Apri il link sopra in SAFARI (non Chrome)
 2. Tocca l'icona Condividi (quadrato con freccia in alto, in
