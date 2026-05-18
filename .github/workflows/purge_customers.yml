@@ -1,0 +1,29 @@
+name: Purge Customer Accounts
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Scrivi PURGE per confermare'
+        required: true
+        default: ''
+
+jobs:
+  purge:
+    name: Delete all customer Auth + Firestore docs (keep admin + operatore)
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'PURGE'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run purge script
+        working-directory: docs
+        env:
+          FIREBASE_REFRESH_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: python purge_customers.py

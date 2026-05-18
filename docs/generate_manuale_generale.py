@@ -67,9 +67,13 @@ def tip(doc, t):
     r.font.name = "Calibri"
 
 
-def table(doc, headers, rows):
+def table(doc, headers, rows, col_widths_inches=None):
+    """col_widths_inches: lista di larghezze (in pollici) per ciascuna colonna.
+    Se None, usa larghezze automatiche."""
+    from docx.shared import Inches
     t = doc.add_table(rows=1 + len(rows), cols=len(headers))
     t.style = "Light Grid Accent 1"
+    t.autofit = False
     hdr = t.rows[0].cells
     for i, htxt in enumerate(headers):
         hdr[i].text = ""
@@ -91,6 +95,10 @@ def table(doc, headers, rows):
             run = cells[i].paragraphs[0].add_run(str(val))
             run.font.size = Pt(10.5)
             run.font.name = "Calibri"
+    if col_widths_inches:
+        for i, w in enumerate(col_widths_inches):
+            for row in t.rows:
+                row.cells[i].width = Inches(w)
 
 
 # ============================================================================
@@ -299,7 +307,9 @@ table(doc,
           ["3", "Google Play Developer", "Per pubblicare sul Play Store Android.", "25$ una tantum", "3 sett."],
           ["3", "Build + submission iOS/Android", "Convertire la PWA in app native, generare screenshot, descrizioni store.", "GRATIS (dopo Apple/Google)", "3-5 gg"],
           ["3", "Polizze RC + Cyber + GDPR audit", "Protezione legale per dispute e violazioni dati. Audit annuale per restare conforme.", "700-1500\u20ac/anno", "1 h"],
-      ])
+      ],
+      # T: stretta (0.35"), Cosa: media (1.5"), A cosa serve: larga (3.4"), Costo: 1.2", Tempo: 0.8"
+      col_widths_inches=[0.35, 1.5, 3.4, 1.2, 0.8])
 
 doc.add_paragraph()
 p(doc, "STIMA COSTI ANNO 1", bold=True)
