@@ -20,8 +20,22 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _tab = 0;
+  final List<int> _tabHistory = [];
 
   final _tabs = const [HomeScreen(), OrdersScreen(), AccountScreen()];
+
+  void _switchTab(int i) {
+    if (i == _tab) return;
+    setState(() {
+      _tabHistory.add(_tab);
+      _tab = i;
+    });
+  }
+
+  void _goBack() {
+    if (_tabHistory.isEmpty) return;
+    setState(() => _tab = _tabHistory.removeLast());
+  }
 
   @override
   void initState() {
@@ -45,6 +59,13 @@ class _MainScaffoldState extends State<MainScaffold> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: _tabHistory.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Indietro',
+                onPressed: _goBack,
+              ),
         title: Row(
           children: [
             ClipRRect(
@@ -88,7 +109,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        onDestinationSelected: _switchTab,
         destinations: const [
           NavigationDestination(
               icon: Icon(Icons.home_outlined),

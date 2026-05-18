@@ -25,6 +25,20 @@ class _OperatorScaffoldState extends State<OperatorScaffold> {
     OperatorSettingsScreen(),
   ];
 
+  final List<int> _tabHistory = [];
+
+  void _switchTab(int i) {
+    final current = operatorNavState.tab;
+    if (i == current) return;
+    _tabHistory.add(current);
+    operatorNavState.goToTab(i);
+  }
+
+  void _goBack() {
+    if (_tabHistory.isEmpty) return;
+    operatorNavState.goToTab(_tabHistory.removeLast());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +68,13 @@ class _OperatorScaffoldState extends State<OperatorScaffold> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: _tabHistory.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Indietro',
+                onPressed: _goBack,
+              ),
         title: Row(
           children: [
             ClipRRect(
@@ -126,7 +147,7 @@ class _OperatorScaffoldState extends State<OperatorScaffold> {
       body: IndexedStack(index: operatorNavState.tab, children: _tabs),
       bottomNavigationBar: NavigationBar(
         selectedIndex: operatorNavState.tab,
-        onDestinationSelected: (i) => operatorNavState.goToTab(i),
+        onDestinationSelected: _switchTab,
         destinations: const [
           NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),

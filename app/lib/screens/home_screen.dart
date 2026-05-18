@@ -6,8 +6,26 @@ import '../widgets/store_info_banner.dart';
 import 'category_products_screen.dart';
 import 'custom_request_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey _categoriesKey = GlobalKey();
+
+  void _scrollToCategories() {
+    final ctx = _categoriesKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      alignment: 0.05,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +35,11 @@ class HomeScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _HeroBanner(),
+        _HeroBanner(onStartPressed: _scrollToCategories),
         const SizedBox(height: 20),
         Text(
           'Cosa vuoi creare oggi?',
+          key: _categoriesKey,
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w700,
             color: palette.textPrimary,
@@ -142,6 +161,9 @@ class _CustomRequestCard extends StatelessWidget {
 }
 
 class _HeroBanner extends StatelessWidget {
+  final VoidCallback onStartPressed;
+  const _HeroBanner({required this.onStartPressed});
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
@@ -182,7 +204,7 @@ class _HeroBanner extends StatelessWidget {
                     backgroundColor: Colors.white,
                     foregroundColor: palette.primaryDark,
                   ),
-                  onPressed: () {},
+                  onPressed: onStartPressed,
                   child: const Text('Inizia ora'),
                 ),
               ],
