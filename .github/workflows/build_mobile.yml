@@ -1,0 +1,90 @@
+name: Build Mobile (Android + iOS)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_android:
+    name: Build Android (.aab + .apk)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9
+
+      - name: Pub get
+        working-directory: app
+        run: flutter pub get
+
+      - name: Build APK (release, sideload)
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Build AAB (Play Store)
+        working-directory: app
+        run: flutter build appbundle --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: silvestre-android-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: silvestre-android-aab
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  build_ios:
+    name: Build iOS (.ipa unsigned)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9
+
+      - name: Pub get
+        working-directory: app
+        run: flutter pub get
+
+      - name: Build iOS (no codesign — serve Apple Dev per sigillarlo)
+        working-directory: app
+        run: flutter build ios --release --no-codesign
+
+      - name: Create unsigned .ipa
+        working-directory: app
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -R Runner.app Payload/
+          zip -r app-release-unsigned.ipa Payload
+          ls -lh app-release-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: silvestre-ios-ipa-unsigned
+          path: app/build/ios/iphoneos/app-release-unsigned.ipa
+          retention-days: 30
