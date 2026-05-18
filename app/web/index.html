@@ -39,6 +39,33 @@
 
   <title>Silvestre Fotoservizi</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // Auto-update PWA: se il service worker rileva una versione nuova,
+    // ricarica automaticamente la pagina (no cache stale su mobile).
+    if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+      // Check immediato all'apertura della pagina
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.update());
+        });
+      });
+      // Forza il check del SW ogni volta che torni sulla tab
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(r => r.update());
+          });
+        }
+      });
+    }
+  </script>
 </head>
 <body>
   <!--
