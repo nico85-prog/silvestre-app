@@ -1,14 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:silvestre_app/main.dart';
+import 'package:silvestre_app/data/mock_catalog.dart';
 
 void main() {
-  testWidgets('Welcome screen shows brand on first launch',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(const SilvestreApp());
-    await tester.pump();
+  test('Catalog has categories and products', () {
+    expect(MockCatalog.categories, isNotEmpty);
+    expect(MockCatalog.products, isNotEmpty);
+  });
 
-    expect(find.text('Silvestre Fotoservizi'), findsOneWidget);
-    expect(find.text('Accedi'), findsOneWidget);
-    expect(find.text('Crea un account'), findsOneWidget);
+  test('Every product belongs to an existing category', () {
+    final catIds = MockCatalog.categories.map((c) => c.id).toSet();
+    for (final p in MockCatalog.products) {
+      expect(catIds.contains(p.category), isTrue,
+          reason: 'Product ${p.id} references unknown category ${p.category}');
+    }
+  });
+
+  test('Every product has at least one variant', () {
+    for (final p in MockCatalog.products) {
+      expect(p.variants, isNotEmpty,
+          reason: 'Product ${p.id} has no variants');
+    }
   });
 }

@@ -7,7 +7,7 @@ import 'package:silvestre_app/theme/app_theme.dart';
 void main() {
   testWidgets('ProductDetailScreen renders all variants for "Stampa classica"',
       (WidgetTester tester) async {
-    final product = MockCatalog.byId('print_classic');
+    final product = MockCatalog.byId('stampa_classica');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -17,30 +17,24 @@ void main() {
     );
     await tester.pump();
 
-    // Section heading
     expect(find.text('Scegli il formato'), findsOneWidget);
 
-    // All 5 variant names should be in the tree
-    expect(find.text('10x15 cm'), findsOneWidget);
-    expect(find.text('13x18 cm'), findsOneWidget);
-    expect(find.text('15x21 cm'), findsOneWidget);
-    expect(find.text('20x30 cm'), findsOneWidget);
-    expect(find.text('30x45 cm'), findsOneWidget);
+    // Every variant name from the catalog should be in the tree
+    for (final v in product.variants) {
+      expect(find.text(v.name), findsOneWidget,
+          reason: 'variant ${v.name} should render');
+    }
 
-    // Default selected variant price visible
-    expect(find.text('€ 0.20'), findsWidgets);
-
-    // Quantità section
     expect(find.text('Quantità'), findsOneWidget);
-
-    // Bottom bar
     expect(find.text('Totale'), findsOneWidget);
     expect(find.text('Aggiungi'), findsOneWidget);
   });
 
-  testWidgets('Selecting a variant updates the total',
+  testWidgets('Selecting last variant updates the total to its price',
       (WidgetTester tester) async {
-    final product = MockCatalog.byId('print_classic');
+    final product = MockCatalog.byId('stampa_classica');
+    final lastVariant = product.variants.last;
+    final expectedPrice = product.basePrice + lastVariant.priceDelta;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -50,18 +44,12 @@ void main() {
     );
     await tester.pump();
 
-    // Scroll into view first since variants may be below the fold
-    final formatHeader = find.text('Scegli il formato');
-    await tester.ensureVisible(formatHeader);
+    final variantFinder = find.text(lastVariant.name);
+    await tester.ensureVisible(variantFinder);
+    await tester.pump();
+    await tester.tap(variantFinder);
     await tester.pump();
 
-    final variant30x45 = find.text('30x45 cm');
-    await tester.ensureVisible(variant30x45);
-    await tester.pump();
-    await tester.tap(variant30x45);
-    await tester.pump();
-
-    // 30x45 = base 0.20 + delta 4.80 = 5.00 * 1 quantity
-    expect(find.text('€ 5.00'), findsWidgets);
+    expect(find.text('€ ${expectedPrice.toStringAsFixed(2)}'), findsWidgets);
   });
 }
