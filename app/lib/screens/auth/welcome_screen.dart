@@ -40,7 +40,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Le tue foto, stampate con cura dal 1970.\nA Frattamaggiore.',
+                'Le tue foto, stampate con cura dal 1970.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
