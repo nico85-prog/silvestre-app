@@ -8,6 +8,8 @@
 *-service-account.json
 google-services.json
 GoogleService-Info.plist
+master_account.txt
+*_account.txt
 
 # OS
 .DS_Store
