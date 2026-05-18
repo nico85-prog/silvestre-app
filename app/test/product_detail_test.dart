@@ -26,7 +26,6 @@ void main() {
     }
 
     expect(find.text('Quantità'), findsOneWidget);
-    expect(find.text('Totale'), findsOneWidget);
     expect(find.text('Aggiungi'), findsOneWidget);
   });
 

@@ -78,33 +78,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: palette.textPrimary,
             ),
           ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.border),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline,
-                    size: 18, color: palette.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    product.description,
-                    style: TextStyle(
-                      color: palette.textPrimary,
-                      fontSize: 13.5,
-                      height: 1.45,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 22),
           Text(
             'Scegli il formato',
@@ -172,22 +145,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 18),
-          Text(
-            'Quantità',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: palette.textPrimary,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 10),
-          _QuantitySelector(
-            value: _quantity,
-            onChanged: (v) => setState(() => _quantity = v),
-            palette: palette,
-            unitPrice: unitPrice,
-          ),
           const SizedBox(height: 22),
           Text(
             _isPhotobook ? 'Componi il tuo fotolibro' : 'Le tue foto',
@@ -223,65 +180,232 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             color: palette.background,
             border: Border(top: BorderSide(color: palette.border)),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // 1) Descrizione (sempre visibile sopra qty/prezzo/aggiungi)
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: palette.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        product.description,
+                        style: TextStyle(
+                          color: palette.textPrimary,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              // 2) Row: SINISTRA back+quantity, DESTRA prezzo sopra Aggiungi
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('Totale',
-                      style: TextStyle(
-                          fontSize: 12, color: palette.textSecondary)),
-                  Text(
-                    '€ ${lineTotal.toStringAsFixed(2)}',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: palette.textPrimary,
+                  // LEFT: back arrow (al posto del vecchio prezzo) + quantity
+                  IconButton(
+                    tooltip: 'Indietro',
+                    style: IconButton.styleFrom(
+                      side: BorderSide(color: palette.border),
+                      padding: const EdgeInsets.all(10),
+                    ),
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Quantità',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              color: palette.textSecondary,
+                            )),
+                        const SizedBox(height: 4),
+                        _CompactQtyBar(
+                          value: _quantity,
+                          onChanged: (v) => setState(() => _quantity = v),
+                          palette: palette,
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  // RIGHT: price stacked above Aggiungi
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '€ ${lineTotal.toStringAsFixed(2)}',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: palette.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          final variant = product.variants
+                              .firstWhere((v) => v.id == _selectedVariantId);
+                          cartState.add(CartItem(
+                            id: '${product.id}_${variant.id}_${DateTime.now().millisecondsSinceEpoch}',
+                            productId: product.id,
+                            variantId: variant.id,
+                            productName: product.name,
+                            variantName: variant.name,
+                            quantity: _quantity,
+                            unitPrice: unitPrice,
+                            photoUrls: List.from(_photoUrls),
+                            photobookPages: _photobookPages.isEmpty
+                                ? null
+                                : _photobookPages
+                                    .map((p) => p.toFirestore())
+                                    .toList(),
+                          ));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  '${product.name} aggiunto al carrello'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.add_shopping_cart, size: 18),
+                        label: const Text('Aggiungi'),
+                      ),
+                    ],
+                  ),
                 ],
-              ),
-              const Spacer(),
-              IconButton(
-                tooltip: 'Indietro',
-                style: IconButton.styleFrom(
-                  side: BorderSide(color: palette.border),
-                  padding: const EdgeInsets.all(12),
-                ),
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: () {
-                  final variant = product.variants
-                      .firstWhere((v) => v.id == _selectedVariantId);
-                  cartState.add(CartItem(
-                    id: '${product.id}_${variant.id}_${DateTime.now().millisecondsSinceEpoch}',
-                    productId: product.id,
-                    variantId: variant.id,
-                    productName: product.name,
-                    variantName: variant.name,
-                    quantity: _quantity,
-                    unitPrice: unitPrice,
-                    photoUrls: List.from(_photoUrls),
-                    photobookPages: _photobookPages.isEmpty
-                        ? null
-                        : _photobookPages.map((p) => p.toFirestore()).toList(),
-                  ));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} aggiunto al carrello'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.add_shopping_cart),
-                label: const Text('Aggiungi'),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CompactQtyBar extends StatefulWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+  final SilvestrePalette palette;
+
+  const _CompactQtyBar({
+    required this.value,
+    required this.onChanged,
+    required this.palette,
+  });
+
+  @override
+  State<_CompactQtyBar> createState() => _CompactQtyBarState();
+}
+
+class _CompactQtyBarState extends State<_CompactQtyBar> {
+  late final TextEditingController _ctl =
+      TextEditingController(text: widget.value.toString());
+
+  @override
+  void didUpdateWidget(_CompactQtyBar old) {
+    super.didUpdateWidget(old);
+    if (widget.value.toString() != _ctl.text) {
+      _ctl.text = widget.value.toString();
+      _ctl.selection =
+          TextSelection.collapsed(offset: _ctl.text.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  void _commit(String s) {
+    final n = int.tryParse(s.trim());
+    if (n == null || n < 1) {
+      _ctl.text = '1';
+      widget.onChanged(1);
+    } else if (n > 9999) {
+      _ctl.text = '9999';
+      widget.onChanged(9999);
+    } else {
+      widget.onChanged(n);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: widget.value > 1
+                ? () => widget.onChanged(widget.value - 1)
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(Icons.remove,
+                  size: 16,
+                  color: widget.value > 1
+                      ? palette.textPrimary
+                      : palette.textSecondary),
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: TextField(
+              controller: _ctl,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: palette.textPrimary,
+                fontSize: 14,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 6),
+              ),
+              onSubmitted: _commit,
+              onEditingComplete: () => _commit(_ctl.text),
+              onTapOutside: (_) => _commit(_ctl.text),
+            ),
+          ),
+          InkWell(
+            onTap: widget.value < 9999
+                ? () => widget.onChanged(widget.value + 1)
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(Icons.add, size: 16, color: palette.textPrimary),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -363,140 +487,3 @@ class _PhotobookSummaryCard extends StatelessWidget {
   }
 }
 
-class _QuantitySelector extends StatefulWidget {
-  final int value;
-  final ValueChanged<int> onChanged;
-  final SilvestrePalette palette;
-  final double unitPrice;
-
-  const _QuantitySelector({
-    required this.value,
-    required this.onChanged,
-    required this.palette,
-    required this.unitPrice,
-  });
-
-  @override
-  State<_QuantitySelector> createState() => _QuantitySelectorState();
-}
-
-class _QuantitySelectorState extends State<_QuantitySelector> {
-  late final TextEditingController _ctl =
-      TextEditingController(text: widget.value.toString());
-
-  @override
-  void didUpdateWidget(_QuantitySelector old) {
-    super.didUpdateWidget(old);
-    if (widget.value.toString() != _ctl.text) {
-      _ctl.text = widget.value.toString();
-      _ctl.selection =
-          TextSelection.collapsed(offset: _ctl.text.length);
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctl.dispose();
-    super.dispose();
-  }
-
-  void _commit(String s) {
-    final n = int.tryParse(s.trim());
-    if (n == null || n < 1) {
-      _ctl.text = '1';
-      widget.onChanged(1);
-    } else if (n > 9999) {
-      _ctl.text = '9999';
-      widget.onChanged(9999);
-    } else {
-      widget.onChanged(n);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = widget.palette;
-    final lineTotal = widget.unitPrice * widget.value;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: palette.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: widget.value > 1
-                    ? () => widget.onChanged(widget.value - 1)
-                    : null,
-              ),
-              SizedBox(
-                width: 70,
-                child: TextField(
-                  controller: _ctl,
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: palette.textPrimary,
-                    fontSize: 16,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onSubmitted: _commit,
-                  onEditingComplete: () => _commit(_ctl.text),
-                  onTapOutside: (_) => _commit(_ctl.text),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: widget.value < 9999
-                    ? () => widget.onChanged(widget.value + 1)
-                    : null,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: palette.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: palette.primary.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.calculate_outlined,
-                  size: 18, color: palette.primary),
-              const SizedBox(width: 8),
-              Text(
-                '${widget.value} × € ${widget.unitPrice.toStringAsFixed(2)} = ',
-                style: TextStyle(
-                  color: palette.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              Text(
-                '€ ${lineTotal.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: palette.primary,
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
