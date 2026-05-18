@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 class PushNotificationsService {
   /// VAPID public key from Firebase Console → Cloud Messaging → Web Push certificates.
   /// Required for FCM web push to work.
-  static const String? webVapidKey =
+  static const String webVapidKey =
       'BJwmL3IJX96AylL3tULRe31RiJxiJsM0WYsnvMBt5IMsUArxmDxltouQp7HJy9ya7IbxHDhY959vjQ4QEmypZ1k';
 
   static FirebaseMessaging get _fm => FirebaseMessaging.instance;
@@ -45,7 +45,6 @@ class PushNotificationsService {
   static Future<String?> getToken() async {
     try {
       if (kIsWeb) {
-        if (webVapidKey == null) return null;
         return await _fm.getToken(vapidKey: webVapidKey);
       }
       return await _fm.getToken();

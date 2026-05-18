@@ -6,6 +6,7 @@ import '../state/cart_state.dart';
 import '../state/orders_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/theme_picker_sheet.dart';
+import 'about_screen.dart';
 import 'legal/privacy_policy_screen.dart';
 import 'legal/terms_screen.dart';
 
@@ -153,6 +154,15 @@ class AccountScreen extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _SectionTitle('Aiuto', palette: palette),
+            _Tile(
+              icon: Icons.storefront_outlined,
+              title: 'Chi siamo',
+              subtitle: 'La storia di Silvestre Fotoservizi dal 1970',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutScreen()),
+              ),
+            ),
             _Tile(
               icon: Icons.help_outline,
               title: 'Domande frequenti',

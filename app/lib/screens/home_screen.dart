@@ -89,7 +89,7 @@ class _HeroBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Le tue foto,\nstampate con cura',
+                  'Da oltre 50 anni\nstampiamo i tuoi ricordi',
                   style: textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -98,7 +98,7 @@ class _HeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Ordini in app, ritiro in negozio a Frattamaggiore',
+                  'Ordini in app, ritiro a Frattamaggiore in 24-48h',
                   style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 14),

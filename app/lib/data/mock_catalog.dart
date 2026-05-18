@@ -6,37 +6,37 @@ class MockCatalog {
     Category(
       id: 'print',
       name: 'Stampe foto',
-      tagline: 'Dal 10x15 al poster',
+      tagline: 'I ricordi che si tengono in mano',
       icon: Icons.photo_library_outlined,
     ),
     Category(
       id: 'photobook',
       name: 'Fotolibri',
-      tagline: 'Personalizza il tuo libro',
+      tagline: 'Le tue storie in un libro su misura',
       icon: Icons.menu_book_outlined,
     ),
     Category(
       id: 'calendar',
       name: 'Calendari',
-      tagline: '12 mesi con le tue foto',
+      tagline: '12 mesi con i momenti che ami',
       icon: Icons.calendar_month_outlined,
     ),
     Category(
       id: 'canvas',
       name: 'Tele e quadri',
-      tagline: 'Stampa su tela per la parete',
+      tagline: 'Arredo che racconta chi sei',
       icon: Icons.image_outlined,
     ),
     Category(
       id: 'magnet',
       name: 'Magneti',
-      tagline: 'Foto da frigorifero',
+      tagline: 'Sorrisi sempre a portata di vista',
       icon: Icons.bookmark_outline,
     ),
     Category(
       id: 'gift',
       name: 'Regali',
-      tagline: 'Tazze, cuscini, t-shirt',
+      tagline: 'Un pensiero unico per ogni persona',
       icon: Icons.card_giftcard_outlined,
     ),
   ];
@@ -46,7 +46,8 @@ class MockCatalog {
       id: 'print_classic',
       category: 'print',
       name: 'Stampa classica',
-      description: 'Carta fotografica lucida o opaca. Pronta in 24h.',
+      description:
+          'Carta fotografica professionale, finitura lucida o opaca. Colori brillanti, neri profondi. Pronta in 24h.',
       basePrice: 0.20,
       icon: Icons.photo_outlined,
       editorConfig: const EditorConfig(canvasWidthMm: 100, canvasHeightMm: 150),
@@ -62,7 +63,8 @@ class MockCatalog {
       id: 'print_poster',
       category: 'print',
       name: 'Poster grande formato',
-      description: 'Stampa su carta poster fino a 70x100 cm.',
+      description:
+          'Carta poster spessa 200 g, fino a 70x100 cm. Perfetto per camerette, studi e regali d\'effetto.',
       basePrice: 9.90,
       icon: Icons.crop_landscape,
       editorConfig: const EditorConfig(canvasWidthMm: 500, canvasHeightMm: 700),
@@ -75,7 +77,8 @@ class MockCatalog {
       id: 'photobook_square_20',
       category: 'photobook',
       name: 'Fotolibro Quadrato',
-      description: 'Copertina rigida, carta fotografica 200 g/mq.',
+      description:
+          'Copertina rigida personalizzata, carta fotografica 200 g/mq. Il regalo perfetto per matrimoni, battesimi, anniversari.',
       basePrice: 24.90,
       icon: Icons.book,
       editorConfig: const EditorConfig(
@@ -91,7 +94,8 @@ class MockCatalog {
       id: 'photobook_landscape',
       category: 'photobook',
       name: 'Fotolibro Orizzontale',
-      description: 'Formato panoramico, ideale per viaggi.',
+      description:
+          'Formato panoramico A4 con rilegatura professionale. Pensato per viaggi e paesaggi che meritano spazio.',
       basePrice: 29.90,
       icon: Icons.auto_stories,
       editorConfig: const EditorConfig(
@@ -105,7 +109,8 @@ class MockCatalog {
       id: 'calendar_wall',
       category: 'calendar',
       name: 'Calendario da parete',
-      description: '12 fogli + copertina, spirale superiore.',
+      description:
+          '12 fogli mensili + copertina, rilegatura a spirale superiore. Una foto diversa per ogni mese che apri.',
       basePrice: 14.90,
       icon: Icons.calendar_view_month,
       editorConfig: const EditorConfig(
@@ -119,7 +124,8 @@ class MockCatalog {
       id: 'calendar_desk',
       category: 'calendar',
       name: 'Calendario da tavolo',
-      description: 'Formato compatto con cavalletto.',
+      description:
+          'Formato compatto da scrivania con cavalletto. Perfetto per ufficio e regali aziendali.',
       basePrice: 9.90,
       icon: Icons.event_note,
       editorConfig: const EditorConfig(
@@ -132,7 +138,8 @@ class MockCatalog {
       id: 'canvas_classic',
       category: 'canvas',
       name: 'Tela su telaio',
-      description: 'Stampa su tela canvas montata su telaio in legno.',
+      description:
+          'Stampa su tela canvas 360 g/m² montata su telaio in legno di abete. Pronta da appendere, durata oltre 50 anni.',
       basePrice: 19.90,
       icon: Icons.image,
       editorConfig: const EditorConfig(canvasWidthMm: 400, canvasHeightMm: 300),
@@ -147,7 +154,8 @@ class MockCatalog {
       id: 'magnet_set',
       category: 'magnet',
       name: 'Set magneti foto',
-      description: 'Magneti da frigorifero personalizzati, set da 9.',
+      description:
+          'Set di magneti rigidi 6x9 cm personalizzati con le tue foto. Le facce dei tuoi cari, ogni volta che apri il frigo.',
       basePrice: 8.90,
       icon: Icons.bookmark,
       editorConfig: const EditorConfig(canvasWidthMm: 60, canvasHeightMm: 90),
@@ -160,7 +168,8 @@ class MockCatalog {
       id: 'mug',
       category: 'gift',
       name: 'Tazza personalizzata',
-      description: 'Tazza ceramica bianca con la tua foto.',
+      description:
+          'Tazza ceramica bianca 330 ml con la tua foto stampata a colori sublimatici. Lavabile in lavastoviglie.',
       basePrice: 9.90,
       icon: Icons.coffee,
       editorConfig: const EditorConfig(canvasWidthMm: 200, canvasHeightMm: 80),
@@ -173,7 +182,8 @@ class MockCatalog {
       id: 'cushion',
       category: 'gift',
       name: 'Cuscino personalizzato',
-      description: 'Cuscino 40x40 cm in poliestere stampato.',
+      description:
+          'Cuscino quadrato in microfibra morbida, imbottito, con foto stampata a tutto colore. Idea regalo originale.',
       basePrice: 19.90,
       icon: Icons.weekend_outlined,
       editorConfig: const EditorConfig(canvasWidthMm: 400, canvasHeightMm: 400),
@@ -186,7 +196,8 @@ class MockCatalog {
       id: 'tshirt',
       category: 'gift',
       name: 'T-shirt personalizzata',
-      description: 'T-shirt cotone 100% con stampa foto fronte.',
+      description:
+          'T-shirt unisex cotone 100% pettinato, stampa fronte ad alta definizione. Resiste a oltre 50 lavaggi.',
       basePrice: 16.90,
       icon: Icons.checkroom,
       editorConfig: const EditorConfig(canvasWidthMm: 250, canvasHeightMm: 300),
