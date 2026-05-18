@@ -124,10 +124,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _phone,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Telefono (opzionale)',
+                    labelText: 'Telefono (obbligatorio)',
+                    helperText: 'Riceverai un messaggio WhatsApp quando '
+                        'l\'ordine sara\' pronto al ritiro.',
+                    helperMaxLines: 2,
                     prefixIcon: Icon(Icons.phone_outlined),
                     border: OutlineInputBorder(),
                   ),
+                  validator: (v) {
+                    final s = (v ?? '').trim();
+                    if (s.isEmpty) return 'Numero di telefono obbligatorio';
+                    final digits = s.replaceAll(RegExp(r'[^0-9]'), '');
+                    if (digits.length < 8) {
+                      return 'Numero non valido (min 8 cifre)';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 14),
                 TextFormField(

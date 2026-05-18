@@ -135,6 +135,7 @@ p(doc, "Indice rapido", bold=True)
 p(doc,
   "1. La tua app in 1 minuto  ·  2. Firebase e Cloudinary spiegati  ·  "
   "3. Lato cliente  ·  4. Lato operatore  ·  5. Cose da comprare  ·  "
+  "5.5. Riepilogo cose mancanti (TIER 1/2/3)  ·  "
   "6. Click gratis da fare  ·  7. Altri documenti  ·  8. Problemi comuni  ·  "
   "9. Glossario", italic=True)
 
@@ -332,8 +333,9 @@ num(doc, [
     "(Termini obbligatori, Marketing opzionale, Foto portfolio opzionale)",
     "Riceve email di verifica (clicca link per confermare)",
     "Catalogo con 6 categorie (Stampe, Fotolibri, Calendari, Tele/Quadri, Fotoregali, Crystal 3D) — "
-    "30 prodotti, 129 varianti reali dal listino Silvestre",
-    "Sceglie prodotto → formato → quantità → carica le sue foto",
+    "30 prodotti, 193 varianti reali dal listino Silvestre (incluse tutte le fasce quantità: 1-29, 30-49, 50-149, 150-299, 300-479, 480-599, 600+ per le stampe piccole)",
+    "Sceglie prodotto → formato → carica le foto (per le stampe la quantità si imposta automaticamente al numero di foto caricate, sempre modificabile)",
+    "Nel dettaglio prodotto vede: card descrizione dettagliata + selettore quantità a sinistra + prezzo totale sopra il bottone Aggiungi + freccia indietro",
     "Per i Fotolibri: si apre l'EDITOR AUTOMATICO che impagina da solo (1/2/3/4/6 foto per pagina)",
     "Aggiunge al carrello → checkout",
     "Sceglie come pagare: CARTA (Stripe) / SATISPAY / PAGA IN NEGOZIO",
@@ -455,35 +457,93 @@ p(doc, "Per istruzioni step-by-step di OGNI acquisto, vedi: "
 doc.add_page_break()
 
 # ============================================================================
-h(doc, "6. Click GRATIS da fare in console", 1)
-p(doc, "Cose già pronte nel codice. Manca solo che tu clicchi nelle console online.")
+h(doc, "5.5. Riepilogo COMPLETO: cosa manca per produzione (gratis + a pagamento)", 1)
 
-h(doc, "A. VAPID key per push web (3 click)", 2)
-num(doc, [
-    "Firebase Console \u2192 Project Settings (ingranaggio) \u2192 tab Cloud Messaging",
-    "\"Web Push certificates\" \u2192 Generate key pair",
-    "Copia la chiave, mandamela in chat \u2192 la incollo io nel codice",
+p(doc, "Tabella organizzata per priorità. Tier 1 = obbligatorio prima di accettare ordini reali. "
+       "Tier 2 = entro 30 giorni dal lancio. Tier 3 = espansione futura.", italic=True)
+
+doc.add_paragraph()
+h(doc, "TIER 1 — Indispensabile prima del lancio pubblico", 2)
+table(doc,
+      ["#", "Cosa manca", "Costo", "Tempo", "Note"],
+      [
+          ["1", "Foto reali dei prodotti", "GRATIS", "1 giorno", "Ora ci sono foto Pexels mockup. Scatta foto vere dei prodotti, le carico io sull'app"],
+          ["2", "Pagamenti Stripe LIVE", "GRATIS apertura, ~1.4% + 0.25\u20ac per transazione", "1-2 giorni verifica", "Servono dati azienda + PIVA. Ora è in demo mode"],
+          ["3", "Pagamenti Satispay LIVE", "GRATIS apertura, ~1.5% per transazione", "1 settimana verifica", "Account Satispay Business, ora demo"],
+          ["4", "Email automatiche (SendGrid)", "GRATIS fino 100 mail/giorno", "30 minuti", "Conferma ordine, ordine pronto, preventivo accettato"],
+          ["5", "Privacy + Termini GDPR (Iubenda)", "29-79\u20ac/anno", "10 minuti compilazione", "Obbligatorio se hai utenti reali. App Store/Play lo richiedono"],
+          ["6", "Cookie banner GDPR", "Incluso in Iubenda", "5 minuti", "Stesso piano Iubenda lo genera automatico"],
+          ["7", "Beta test con 5-10 clienti veri", "GRATIS", "1-2 settimane", "Manda agli amici via Istruzioni_Amici_Test.txt"],
+      ])
+p(doc, "TOTALE TIER 1: ~30-80\u20ac/anno (Iubenda) + commissioni transazioni. Tutto il resto è gratis.", bold=True)
+
+doc.add_paragraph()
+h(doc, "TIER 2 — Entro 30 giorni dal lancio", 2)
+table(doc,
+      ["#", "Cosa manca", "Costo", "Tempo", "Note"],
+      [
+          ["8", "Dominio personalizzato (.it)", "10-15\u20ac/anno", "10 minuti + 24h DNS", "Es. silvestrefotoservizi.it invece di silvestre-fotoservizi.web.app"],
+          ["9", "Backup Firestore schedulato", "GRATIS (free tier)", "30 min setup", "Cloud Function che esporta i dati ogni notte su Storage"],
+          ["10", "Sentry per monitoring errori", "GRATIS fino 5000 errori/mese", "15 min", "Quando l'app crasha lato cliente, ricevi alert su email"],
+          ["11", "App icon professionale", "50-200\u20ac una tantum", "designer 1-3 gg", "Logo già c'è, ma servono icon multiple per Android/iOS"],
+          ["12", "Bottone WhatsApp diretto", "GRATIS", "10 min codice", "In app: bottone \"Contattaci\" che apre WhatsApp con il tuo numero"],
+          ["13", "Splash screen brand", "GRATIS (incluso Flutter)", "10 min", "Schermata logo all'avvio invece del bianco"],
+      ])
+p(doc, "TOTALE TIER 2: 60-215\u20ac primo anno.", bold=True)
+
+doc.add_paragraph()
+h(doc, "TIER 3 — Espansione (3-12 mesi dopo)", 2)
+table(doc,
+      ["#", "Cosa manca", "Costo", "Tempo", "Note"],
+      [
+          ["14", "Apple Developer (iOS App Store)", "99$ (~92\u20ac)/anno", "1-2 settimane verifica DUNS", "Per essere su App Store iPhone. Senza, solo PWA via Safari"],
+          ["15", "Google Play Developer (Android)", "25$ (~23\u20ac) UNA TANTUM", "3-5 settimane verifica cartolina", "Per essere su Play Store"],
+          ["16", "Google Analytics 4", "GRATIS", "20 min", "Quanti visitano, quanti ordinano, dove si bloccano"],
+          ["17", "Programma fedeltà (sconto N-esimo ordine)", "GRATIS (solo sviluppo)", "1-2 giorni codice", "Es. al 10° ordine -20%. Aumenta retention"],
+          ["18", "Notifiche push promozionali (FCM)", "GRATIS", "30 min", "Già pronto. Manda push manuale es. Black Friday, Natale"],
+          ["19", "Versione inglese", "GRATIS (solo traduzione)", "1 giorno", "Per turisti / clienti fuori provincia"],
+          ["20", "Polizza RC + Cyber", "400-1200\u20ac/anno", "1 ora preventivo", "Protezione legale per data breach o dispute"],
+      ])
+p(doc, "TOTALE TIER 3 primo anno: 115-1320\u20ac dipende da quanto includi.", bold=True)
+
+doc.add_paragraph()
+h(doc, "Cose GIÀ a posto (non manca nulla)", 2)
+bul(doc, [
+    "Auth con email/password (Firebase) — clienti possono registrarsi e fare login",
+    "Catalogo dinamico da CSV (30 prodotti, 193 varianti)",
+    "Carrello e ordini real-time (cliente e operatore vedono lo stesso in 1 secondo)",
+    "Photobook editor con auto-impagina AI",
+    "Lavoro personalizzato (richiesta preventivo)",
+    "3 ruoli: customer, staff, admin con permessi Firestore",
+    "Operatore manda messaggi cliente via WhatsApp/SMS/Email",
+    "Codice ritiro generato automaticamente per ogni ordine",
+    "PWA installabile su iOS Safari + Android Chrome",
+    "CI/CD auto-deploy su push GitHub (Build & Deploy workflow)",
+    "Workflow manuale Refresh Catalog Images (Pexels)",
+    "Tutti i dati persistono ai deploy (Firestore non viene mai resettato)",
 ])
 
-h(doc, "B. Registra app Android (5 min)", 2)
-num(doc, [
-    "Firebase Console \u2192 Project Settings \u2192 tab General \u2192 Add app \u2192 icona Android",
-    "Package name: com.silvestrefotoservizi.app",
-    "Scarica google-services.json \u2192 mettilo in app/android/app/",
-])
+doc.add_page_break()
 
-h(doc, "C. Registra app iOS (5 min)", 2)
-num(doc, [
-    "Stessa pagina \u2192 icona iOS",
-    "Bundle ID: com.silvestrefotoservizi.app",
-    "Scarica GoogleService-Info.plist \u2192 mettilo in app/ios/Runner/",
-])
+# ============================================================================
+h(doc, "6. Click GRATIS — STATO: TUTTI FATTI \u2705", 1)
+p(doc, "I 4 click iniziali sono stati completati durante il setup. Sezione qui per riferimento storico.")
 
-h(doc, "D. Aggiorna Cloudinary Secret in .env.local", 2)
-num(doc, [
-    "Apri SilvestreApp/.env.local con Blocco Note",
-    "Sostituisci CLOUDINARY_API_SECRET con il valore nuovo (quello rotato sulla dashboard)",
-    "Salva. NON mandarmi il Secret in chat.",
+table(doc,
+      ["#", "Cosa", "Stato", "Dove vive ora"],
+      [
+          ["A", "VAPID key per push web", "FATTO", "push_notifications_service.dart riga 14"],
+          ["B", "Registra app Android", "FATTO", "app/android/app/google-services.json"],
+          ["C", "Registra app iOS", "FATTO", "app/ios/Runner/GoogleService-Info.plist"],
+          ["D", "Cloudinary API Secret", "FATTO", ".env.local (27 caratteri)"],
+      ])
+
+tip(doc, "Prossimi click gratis utili (non più nel setup di base) — vedi sezione 5.5 TIER 1:")
+bul(doc, [
+    "Aprire account SendGrid free (100 mail/giorno gratis) per email automatiche",
+    "Aprire account Sentry free (5000 errori/mese gratis) per monitoring",
+    "Iscriversi a Iubenda (29\u20ac/anno) per Privacy + Termini GDPR",
+    "Acquistare dominio .it (10\u20ac/anno) e collegarlo a Firebase Hosting",
 ])
 
 doc.add_page_break()
