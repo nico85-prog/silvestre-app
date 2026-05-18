@@ -78,10 +78,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: palette.textPrimary,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            product.description,
-            style: TextStyle(color: palette.textSecondary, fontSize: 14),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: palette.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: 18, color: palette.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    product.description,
+                    style: TextStyle(
+                      color: palette.textPrimary,
+                      fontSize: 13.5,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 22),
           Text(
