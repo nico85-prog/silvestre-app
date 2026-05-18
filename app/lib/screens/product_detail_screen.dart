@@ -164,6 +164,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             value: _quantity,
             onChanged: (v) => setState(() => _quantity = v),
             palette: palette,
+            unitPrice: unitPrice,
           ),
           const SizedBox(height: 22),
           Text(
@@ -336,50 +337,140 @@ class _PhotobookSummaryCard extends StatelessWidget {
   }
 }
 
-class _QuantitySelector extends StatelessWidget {
+class _QuantitySelector extends StatefulWidget {
   final int value;
   final ValueChanged<int> onChanged;
   final SilvestrePalette palette;
+  final double unitPrice;
 
   const _QuantitySelector({
     required this.value,
     required this.onChanged,
     required this.palette,
+    required this.unitPrice,
   });
 
   @override
+  State<_QuantitySelector> createState() => _QuantitySelectorState();
+}
+
+class _QuantitySelectorState extends State<_QuantitySelector> {
+  late final TextEditingController _ctl =
+      TextEditingController(text: widget.value.toString());
+
+  @override
+  void didUpdateWidget(_QuantitySelector old) {
+    super.didUpdateWidget(old);
+    if (widget.value.toString() != _ctl.text) {
+      _ctl.text = widget.value.toString();
+      _ctl.selection =
+          TextSelection.collapsed(offset: _ctl.text.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  void _commit(String s) {
+    final n = int.tryParse(s.trim());
+    if (n == null || n < 1) {
+      _ctl.text = '1';
+      widget.onChanged(1);
+    } else if (n > 9999) {
+      _ctl.text = '9999';
+      widget.onChanged(9999);
+    } else {
+      widget.onChanged(n);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.remove),
-            onPressed: value > 1 ? () => onChanged(value - 1) : null,
+    final palette = widget.palette;
+    final lineTotal = widget.unitPrice * widget.value;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: palette.border),
           ),
-          SizedBox(
-            width: 40,
-            child: Text(
-              '$value',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: palette.textPrimary,
-                fontSize: 16,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove),
+                onPressed: widget.value > 1
+                    ? () => widget.onChanged(widget.value - 1)
+                    : null,
               ),
-            ),
+              SizedBox(
+                width: 70,
+                child: TextField(
+                  controller: _ctl,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: palette.textPrimary,
+                    fontSize: 16,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onSubmitted: _commit,
+                  onEditingComplete: () => _commit(_ctl.text),
+                  onTapOutside: (_) => _commit(_ctl.text),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: widget.value < 9999
+                    ? () => widget.onChanged(widget.value + 1)
+                    : null,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: value < 99 ? () => onChanged(value + 1) : null,
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: palette.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: palette.primary.withValues(alpha: 0.3)),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Icon(Icons.calculate_outlined,
+                  size: 18, color: palette.primary),
+              const SizedBox(width: 8),
+              Text(
+                '${widget.value} × € ${widget.unitPrice.toStringAsFixed(2)} = ',
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                '€ ${lineTotal.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: palette.primary,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
