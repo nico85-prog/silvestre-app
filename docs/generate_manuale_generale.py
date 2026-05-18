@@ -168,10 +168,12 @@ p(doc, "La tua app è solo l'INTERFACCIA. I dati e le foto vivono altrove, "
 
 p(doc, "Servizi esterni in cui SEI GIÀ registrato:", bold=True)
 table(doc,
-      ["Servizio", "Email account", "Tipo registrazione", "Costo attuale"],
+      ["Servizio", "Tipo registrazione", "Costo attuale", "A cosa serve"],
       [
-          ["Firebase (Google)", "nicolarosano85@gmail.com", "Account Google", "Gratis (piano Spark)"],
-          ["Cloudinary", "il tuo account Cloudinary", "Email + password", "Gratis (Developer free)"],
+          ["Firebase (Google)", "Account Google", "Gratis (Spark)", "Auth + database + push + hosting"],
+          ["Cloudinary", "Email + password", "Gratis (Developer)", "Magazzino foto utenti"],
+          ["Pexels", "Email + password", "Gratis", "Foto stock per catalogo (con attribuzione automatica autori)"],
+          ["GitHub", "Account GitHub", "Gratis", "Backup codice + CI/CD auto-deploy"],
       ])
 
 p(doc, "Servizi esterni FUTURI (non aperti, vedi sez. 5 per dettagli):", bold=True)
@@ -304,36 +306,19 @@ bul(doc, [
 ])
 
 doc.add_paragraph()
-h(doc, "Come ricevere le modifiche", 2)
-p(doc, "Quando io aggiungo funzionalità, l'app sul web NON si aggiorna da sola. Servono 2 cose:")
-bul(doc, [
-    "Io ricompilo l'app + ridepoy (3 minuti) \u2192 versione nuova online",
-    "Tu fai refresh sul telefono (chiudi e riapri o ricarica la pagina) \u2192 vedi le novità",
+h(doc, "Come ricevere le modifiche (CI/CD attivo)", 2)
+p(doc, "La pipeline automatica è ATTIVA. Ogni modifica al codice segue questo flusso:")
+num(doc, [
+    "Io modifico il codice sul tuo PC",
+    "Faccio commit + push su GitHub (repository: nico85-prog/silvestre-app)",
+    "GitHub Actions esegue automaticamente: flutter analyze + flutter test + build web + deploy Firebase Hosting",
+    "In 3-5 minuti l'app online \u00e8 aggiornata",
+    "Tu fai refresh sul telefono (Safari/Chrome) e vedi le novit\u00e0",
 ])
 
-doc.add_paragraph()
-h(doc, "Opzionale: CI/CD automatico con GitHub", 2)
-p(doc, "Per ora ogni modifica richiede che IO esegua il deploy. In alternativa puoi attivare la "
-       "CI/CD (Continuous Integration/Continuous Deployment): un sistema che ridepoy automaticamente "
-       "ogni volta che il codice cambia.")
-
-p(doc, "Cosa serve:", bold=True)
-bul(doc, [
-    "Account GitHub (gratis, 3 min registrazione)",
-    "Repository privato su GitHub",
-    "Personal Access Token per dare a me accesso",
-])
-
-p(doc, "Cosa cambia:", bold=True)
-bul(doc, [
-    "Pro: deploy automatico in ~3 min ad ogni modifica del codice",
-    "Pro: backup automatico del codice sul cloud",
-    "Pro: storia di tutte le modifiche consultabile",
-    "Con: un account in più da gestire",
-])
-
-tip(doc, "Per uno o due deploy a settimana NON vale la fatica. Resta su \"io deployo a richiesta\" "
-         "finché non hai team di sviluppo o vuoi backup automatico.")
+tip(doc, "Tu non devi mai aprire terminale, GitHub o Firebase Console. Mi dici 'aggiungi X' "
+         "o 'modifica Y', faccio io tutto. La CI \u00e8 il guardiano: se introduce un errore "
+         "blocca il deploy automaticamente, quindi il sito live non si rompe.")
 
 doc.add_page_break()
 
@@ -346,7 +331,8 @@ num(doc, [
     "Registrazione: nome, email, telefono, password + 3 consensi GDPR granulari "
     "(Termini obbligatori, Marketing opzionale, Foto portfolio opzionale)",
     "Riceve email di verifica (clicca link per confermare)",
-    "Catalogo con 6 categorie (Stampe, Fotolibri, Calendari, Tele, Magneti, Regali)",
+    "Catalogo con 6 categorie (Stampe, Fotolibri, Calendari, Tele/Quadri, Fotoregali, Crystal 3D) — "
+    "30 prodotti, 129 varianti reali dal listino Silvestre",
     "Sceglie prodotto → formato → quantità → carica le sue foto",
     "Per i Fotolibri: si apre l'EDITOR AUTOMATICO che impagina da solo (1/2/3/4/6 foto per pagina)",
     "Aggiunge al carrello → checkout",
@@ -356,6 +342,14 @@ num(doc, [
     "Quando lo cambi a \"Pronto\", riceve PUSH NOTIFICATION sul telefono",
     "Va in negozio, mostra il codice, ritira",
 ])
+
+doc.add_paragraph()
+h(doc, "Lavoro Personalizzato (cose fuori catalogo)", 2)
+p(doc, "Se il cliente cerca qualcosa che non vede nel catalogo (es. una stampa su materiale insolito, "
+       "un formato fuori standard, un lavoro complesso), tappa la card arancione \"Lavoro Personalizzato\" "
+       "nella home → form con titolo, descrizione, foto di riferimento → invia richiesta. "
+       "Tu ricevi e mandi il preventivo (importo + tempi + nota). Il cliente accetta o declina; "
+       "se accetta, l'ordine prosegue come un ordine normale.")
 
 p(doc, "In tab Account può: modificare profilo, esportare i suoi dati (GDPR), "
        "eliminare l'account (GDPR), cambiare tema dell'app, leggere Privacy + Termini.", italic=True)
@@ -383,6 +377,8 @@ bul(doc, [
     "Bottoni stato: Avvia lavorazione → Pronto → Ritirato (oppure Annulla)",
     "Bottone \"Invia messaggio cliente\" → apre WhatsApp/SMS/Email pre-compilato (testo da template, modificabile)",
     "Per i Fotolibri: vedi tutte le pagine impaginate, tap per ingrandire",
+    "Per le richieste di Lavoro Personalizzato: vedi titolo+descrizione+foto, "
+    "compili form preventivo (importo \u20ac + tempi + nota), invii — il cliente decide se accettare",
 ])
 
 h(doc, "Tab Calendario", 2)

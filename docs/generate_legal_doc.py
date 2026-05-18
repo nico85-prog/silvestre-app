@@ -537,11 +537,26 @@ add_bullets(
 )
 
 add_heading(doc, "8.3 Immagini di stock", level=2)
+add_p(
+    doc,
+    "Il catalogo usa immagini da Pexels (Pexels License) — 36 immagini scaricate via API "
+    "Pexels e cachate in Firestore (collection 'catalog_images'). Pexels License consente "
+    "uso commerciale gratuito; l'attribuzione non è obbligatoria ma 'gradita'. L'app mostra "
+    "comunque l'attribuzione 'Photo by [Autore] - Pexels' come chip cliccabile su ogni "
+    "scheda prodotto e categoria, per buona pratica e trasparenza.",
+)
+add_p(
+    doc,
+    "Quando avrai tue foto reali dei prodotti, basta sostituirle nello stesso campo 'url' "
+    "dei documenti 'catalog_images' su Firestore (o caricarle su Cloudinary e mettere "
+    "l'URL Cloudinary). Le attribuzioni Pexels verranno automaticamente nascoste se il "
+    "campo 'photographer' è vuoto.",
+)
 add_warning(
     doc,
-    "Le immagini placeholder attualmente da LoremFlickr sono CC-BY (richiedono attribuzione). "
-    "PRIMA DEL RILASCIO sostituire con: tue foto, foto Unsplash License (uso libero senza "
-    "attribuzione), Pexels License, o stock a pagamento (Shutterstock, Adobe Stock).",
+    "Conserva sempre traccia della fonte di ogni immagine. Se sostituisci con foto tue, "
+    "assicurati di avere liberatorie dai soggetti riconoscibili (modelle, bambini, persone "
+    "identificabili in primo piano) — vedi sezione 4 GDPR diritti di immagine.",
 )
 
 doc.add_page_break()
@@ -696,9 +711,11 @@ add_table(
         ["Email transazionali", "SendGrid o Resend", "sendgrid.com / resend.com"],
         ["SMS transazionali", "Twilio o Skebby", "twilio.com / skebby.it"],
         ["Push notifications", "Firebase Cloud Messaging", "incluso in Firebase"],
+        ["Stock photos free", "Pexels", "pexels.com"],
+        ["CI/CD auto-deploy", "GitHub Actions", "github.com"],
+        ["Image hosting", "Cloudinary", "cloudinary.com"],
         ["Monitoring/Errori", "Sentry", "sentry.io"],
         ["Analytics privacy-friendly", "Plausible o Umami", "plausible.io / umami.is"],
-        ["Stock photos free", "Unsplash", "unsplash.com"],
         ["Stock photos premium", "Adobe Stock", "stock.adobe.com"],
     ],
 )
