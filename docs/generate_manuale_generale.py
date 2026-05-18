@@ -254,11 +254,54 @@ p(doc, "Come installarla su Android:", bold=True)
 num(doc, [
     "Apri Chrome \u2192 vai all'URL sopra",
     "Chrome propone automaticamente \"Installa Silvestre Fotoservizi\" (banner in basso)",
-    "Tocca \"Installa\" \u2192 fatto",
+    "Tocca \"Installa\" \u2192 fatto. In alternativa: men\u00f9 3 puntini \u22ee \u2192 \"Installa app\"",
 ])
 
 tip(doc, "Per condividere l'app con clienti/amici basta inviargli il link "
          "https://silvestre-fotoservizi.web.app via WhatsApp.")
+
+doc.add_paragraph()
+h(doc, "Messaggi pronti da inoltrare ai clienti", 2)
+p(doc, "Copia-incolla questi testi su WhatsApp o per email. "
+       "Salva il documento e tienitelo a portata di mano in negozio.", italic=True)
+
+doc.add_paragraph()
+p(doc, "TESTO PER iPhone (iOS):", bold=True, color=BLUE)
+p(doc,
+  "Ciao! Apri questo link dall'iPhone usando SAFARI (importante, non Chrome): "
+  "https://silvestre-fotoservizi.web.app\n\n"
+  "1) Carica la pagina\n"
+  "2) In basso al centro tocca l'icona Condividi (quadrato con freccia che esce verso l'alto)\n"
+  "3) Scorri il menu verso il basso fino a \"Aggiungi alla schermata Home\"\n"
+  "4) Tocca, conferma il nome \"Silvestre\" in alto a destra \u2192 Aggiungi\n"
+  "5) Esci da Safari \u2192 trovi l'icona arancione Silvestre sulla home come una vera app\n\n"
+  "Pronto! Aprila da li' come fai con le altre app.")
+
+doc.add_paragraph()
+p(doc, "TESTO PER Android:", bold=True, color=BLUE)
+p(doc,
+  "Ciao! Apri questo link dall'Android usando CHROME: "
+  "https://silvestre-fotoservizi.web.app\n\n"
+  "OPZIONE 1 (automatica): apri la pagina, in basso compare il banner \"Installa "
+  "Silvestre Fotoservizi\" \u2192 tocca Installa.\n\n"
+  "OPZIONE 2 (manuale):\n"
+  "1) Carica la pagina\n"
+  "2) In alto a destra tocca i 3 puntini verticali\n"
+  "3) Tocca \"Installa app\" (o \"Aggiungi a schermata Home\")\n"
+  "4) Conferma \"Installa\"\n\n"
+  "L'icona arancione Silvestre appare sulla home del telefono come una vera app.")
+
+doc.add_paragraph()
+p(doc, "Note importanti:", bold=True)
+bul(doc, [
+    "Su iPhone NON funziona con Chrome — Apple permette \"Aggiungi a Home\" solo da Safari "
+    "(limite Apple, non nostro).",
+    "Su Android funziona anche con Samsung Internet, Edge, Firefox — ma Chrome \u00e8 il pi\u00f9 semplice.",
+    "Anche senza \"installare\", il cliente pu\u00f2 sempre usare l'app dal browser come "
+    "un normale sito web.",
+    "Una volta installata: splash screen arancione all'avvio, schermo intero, niente barra browser. "
+    "Identica a un'app scaricata dallo store.",
+])
 
 doc.add_paragraph()
 h(doc, "Come ricevere le modifiche", 2)

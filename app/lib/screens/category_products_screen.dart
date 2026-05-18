@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/mock_catalog.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
-import '../widgets/product_image.dart';
+import '../widgets/catalog_image.dart';
 import 'product_detail_screen.dart';
 
 class CategoryProductsScreen extends StatelessWidget {
@@ -24,7 +24,6 @@ class CategoryProductsScreen extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, i) {
           final p = products[i];
-          final seed = 'prod_${p.id}_$i';
           final cheapest = p.variants
               .map((v) => p.basePrice + v.priceDelta)
               .reduce((a, b) => a < b ? a : b);
@@ -46,11 +45,8 @@ class CategoryProductsScreen extends StatelessWidget {
                   SizedBox(
                     width: 80,
                     height: 80,
-                    child: ProductImage(
-                      seed: seed,
-                      categoryId: p.category,
-                      width: 500,
-                      height: 500,
+                    child: CatalogImage(
+                      imageKey: p.id,
                       fallbackIcon: p.icon,
                     ),
                   ),

@@ -102,6 +102,67 @@ class OrdersState extends ChangeNotifier {
     await _db.collection('orders').doc(orderId).update(updates);
   }
 
+  /// Crea una richiesta di lavoro personalizzato (preventivo).
+  /// L'ordine parte in stato quoteRequested e non ha items/total finché
+  /// l'operatore non fa preventivo e cliente accetta.
+  Future<String> submitCustomRequest({
+    required String userId,
+    required String title,
+    required String description,
+    required List<String> photoUrls,
+    String? customerName,
+    String? customerPhone,
+  }) async {
+    final pickupCode =
+        'SLV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final order = CustomerOrder(
+      id: '',
+      userId: userId,
+      items: const [],
+      status: OrderStatus.quoteRequested,
+      pickupCode: pickupCode,
+      total: 0,
+      createdAt: DateTime.now(),
+      customerName: customerName,
+      customerPhone: customerPhone,
+      customRequestTitle: title,
+      customRequestDescription: description,
+      customRequestPhotoUrls: photoUrls,
+    );
+    await _db.collection('orders').add(order.toFirestore());
+    return pickupCode;
+  }
+
+  /// L'operatore manda il preventivo (importo, tempi, nota).
+  Future<void> sendQuote({
+    required String orderId,
+    required double amount,
+    required String eta,
+    String? operatorNote,
+  }) async {
+    await _db.collection('orders').doc(orderId).update({
+      'status': OrderStatus.quoted.name,
+      'quoteAmount': amount,
+      'quoteEta': eta,
+      'quoteOperatorNote': operatorNote,
+      'total': amount,
+    });
+  }
+
+  /// Il cliente accetta il preventivo → diventa ordine normale (submitted).
+  Future<void> acceptQuote(String orderId) async {
+    await _db.collection('orders').doc(orderId).update({
+      'status': OrderStatus.submitted.name,
+    });
+  }
+
+  /// Il cliente declina il preventivo → ordine cancellato.
+  Future<void> declineQuote(String orderId) async {
+    await _db.collection('orders').doc(orderId).update({
+      'status': OrderStatus.cancelled.name,
+    });
+  }
+
   @override
   void dispose() {
     _sub?.cancel();

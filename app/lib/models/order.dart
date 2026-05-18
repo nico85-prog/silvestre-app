@@ -4,6 +4,8 @@ import '../theme/app_theme.dart';
 import 'cart_item.dart';
 
 enum OrderStatus {
+  quoteRequested,   // Cliente ha richiesto preventivo per lavoro personalizzato
+  quoted,           // Operatore ha mandato preventivo (in attesa accettazione cliente)
   submitted,
   inProduction,
   readyForPickup,
@@ -22,6 +24,8 @@ extension OrderStatusX on OrderStatus {
   }
 
   String get label => switch (this) {
+        OrderStatus.quoteRequested => 'Preventivo richiesto',
+        OrderStatus.quoted => 'Preventivo pronto',
         OrderStatus.submitted => 'Ricevuto',
         OrderStatus.inProduction => 'In lavorazione',
         OrderStatus.readyForPickup => 'Pronto per il ritiro',
@@ -30,6 +34,8 @@ extension OrderStatusX on OrderStatus {
       };
 
   IconData get icon => switch (this) {
+        OrderStatus.quoteRequested => Icons.question_mark,
+        OrderStatus.quoted => Icons.request_quote_outlined,
         OrderStatus.submitted => Icons.receipt_long_outlined,
         OrderStatus.inProduction => Icons.precision_manufacturing_outlined,
         OrderStatus.readyForPickup => Icons.local_mall_outlined,
@@ -40,6 +46,8 @@ extension OrderStatusX on OrderStatus {
   Color colorOn(BuildContext context) {
     final p = Theme.of(context).extension<SilvestrePalette>()!;
     return switch (this) {
+      OrderStatus.quoteRequested => p.secondary,
+      OrderStatus.quoted => p.warning,
       OrderStatus.submitted => p.warning,
       OrderStatus.inProduction => p.primary,
       OrderStatus.readyForPickup => p.success,
@@ -61,7 +69,14 @@ class CustomerOrder {
   final String? customerNote;
   final String? customerName;
   final String? customerPhone;
-  final Map<String, dynamic>? payment; // {method, transactionId?, paidNow, lastFour?}
+  final Map<String, dynamic>? payment;
+  // Lavoro personalizzato — campi opzionali
+  final String? customRequestTitle;
+  final String? customRequestDescription;
+  final List<String> customRequestPhotoUrls;
+  final double? quoteAmount;
+  final String? quoteEta;
+  final String? quoteOperatorNote; // {method, transactionId?, paidNow, lastFour?}
 
   const CustomerOrder({
     required this.id,
@@ -76,7 +91,15 @@ class CustomerOrder {
     this.customerName,
     this.customerPhone,
     this.payment,
+    this.customRequestTitle,
+    this.customRequestDescription,
+    this.customRequestPhotoUrls = const [],
+    this.quoteAmount,
+    this.quoteEta,
+    this.quoteOperatorNote,
   });
+
+  bool get isCustomRequest => customRequestTitle != null;
 
   CustomerOrder copyWith({OrderStatus? status, DateTime? readyAt}) =>
       CustomerOrder(
@@ -92,6 +115,12 @@ class CustomerOrder {
         customerName: customerName,
         customerPhone: customerPhone,
         payment: payment,
+        customRequestTitle: customRequestTitle,
+        customRequestDescription: customRequestDescription,
+        customRequestPhotoUrls: customRequestPhotoUrls,
+        quoteAmount: quoteAmount,
+        quoteEta: quoteEta,
+        quoteOperatorNote: quoteOperatorNote,
       );
 
   int get itemCount => items.fold(0, (s, i) => s + i.quantity);
@@ -112,6 +141,12 @@ class CustomerOrder {
         'customerName': customerName,
         'customerPhone': customerPhone,
         'payment': payment,
+        'customRequestTitle': customRequestTitle,
+        'customRequestDescription': customRequestDescription,
+        'customRequestPhotoUrls': customRequestPhotoUrls,
+        'quoteAmount': quoteAmount,
+        'quoteEta': quoteEta,
+        'quoteOperatorNote': quoteOperatorNote,
       };
 
   factory CustomerOrder.fromFirestore(String id, Map<String, dynamic> data) {
@@ -130,6 +165,14 @@ class CustomerOrder {
       customerName: data['customerName'] as String?,
       customerPhone: data['customerPhone'] as String?,
       payment: (data['payment'] as Map?)?.cast<String, dynamic>(),
+      customRequestTitle: data['customRequestTitle'] as String?,
+      customRequestDescription: data['customRequestDescription'] as String?,
+      customRequestPhotoUrls: (data['customRequestPhotoUrls'] as List?)
+              ?.cast<String>() ??
+          const [],
+      quoteAmount: (data['quoteAmount'] as num?)?.toDouble(),
+      quoteEta: data['quoteEta'] as String?,
+      quoteOperatorNote: data['quoteOperatorNote'] as String?,
     );
   }
 }

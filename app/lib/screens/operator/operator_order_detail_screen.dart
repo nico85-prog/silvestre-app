@@ -361,6 +361,33 @@ class _ActionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Custom request: stato quoteRequested → form preventivo
+    if (order.status == OrderStatus.quoteRequested && order.isCustomRequest) {
+      return _QuoteForm(order: order, palette: palette);
+    }
+    // Custom request: stato quoted → in attesa cliente
+    if (order.status == OrderStatus.quoted) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: palette.warning.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.warning),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.hourglass_empty, color: palette.warning),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Preventivo inviato. In attesa che il cliente accetti o declini.',
+                style: TextStyle(color: palette.textPrimary),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Column(
       children: [
         if (order.status == OrderStatus.submitted)
@@ -443,6 +470,147 @@ class _ActionPanel extends StatelessWidget {
       builder: (_) => _MessageSheet(
         order: order,
         prefillTemplateKey: prefillTemplate,
+      ),
+    );
+  }
+}
+
+class _QuoteForm extends StatefulWidget {
+  final CustomerOrder order;
+  final SilvestrePalette palette;
+  const _QuoteForm({required this.order, required this.palette});
+
+  @override
+  State<_QuoteForm> createState() => _QuoteFormState();
+}
+
+class _QuoteFormState extends State<_QuoteForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _amount = TextEditingController();
+  final _eta = TextEditingController();
+  final _note = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _eta.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _sending = true);
+    final amount = double.tryParse(_amount.text.replaceAll(',', '.')) ?? 0;
+    try {
+      await ordersState.sendQuote(
+        orderId: widget.order.id,
+        amount: amount,
+        eta: _eta.text.trim(),
+        operatorNote: _note.text.trim().isEmpty ? null : _note.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preventivo inviato al cliente.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: widget.palette.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: widget.palette.primary, width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.request_quote_outlined,
+                    color: widget.palette.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Invia preventivo al cliente',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: widget.palette.textPrimary,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Importo (€)',
+                hintText: 'Es. 45,50',
+                border: OutlineInputBorder(),
+                prefixText: '€ ',
+              ),
+              validator: (v) {
+                final n = double.tryParse(
+                    (v ?? '').replaceAll(',', '.').trim());
+                if (n == null || n <= 0) return 'Importo non valido';
+                return null;
+              },
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _eta,
+              decoration: const InputDecoration(
+                labelText: 'Tempi di consegna',
+                hintText: 'Es. 3-5 giorni lavorativi',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Indica i tempi' : null,
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _note,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Nota per il cliente (opzionale)',
+                hintText: 'Materiali utilizzati, dettagli, condizioni...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: _sending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send_outlined),
+                label: const Text('Invia preventivo'),
+                onPressed: _sending ? null : _send,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

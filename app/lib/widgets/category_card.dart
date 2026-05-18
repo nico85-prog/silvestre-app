@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'product_image.dart';
+import 'catalog_image.dart';
 
 class CategoryCard extends StatelessWidget {
   final String title;
@@ -41,11 +41,8 @@ class CategoryCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ProductImage(
-                    seed: imageSeed,
-                    categoryId: categoryId,
-                    width: 1000,
-                    height: 600,
+                  CatalogImage(
+                    imageKey: 'cat_${categoryId ?? "default"}',
                     borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16)),
                     fallbackIcon: icon,

@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../widgets/category_card.dart';
 import '../widgets/store_info_banner.dart';
 import 'category_products_screen.dart';
+import 'custom_request_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -58,10 +59,84 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
+        const SizedBox(height: 22),
+        _CustomRequestCard(palette: palette),
         const SizedBox(height: 24),
         const StoreInfoBanner(),
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+class _CustomRequestCard extends StatelessWidget {
+  final SilvestrePalette palette;
+  const _CustomRequestCard({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomRequestScreen()),
+      ),
+      child: Ink(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              palette.primary.withValues(alpha: 0.18),
+              palette.secondary.withValues(alpha: 0.12),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: palette.primary, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: palette.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.auto_fix_high,
+                  color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Lavoro personalizzato',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: palette.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Non trovi quello che cerchi? Descrivilo a noi: '
+                    'ti rispondiamo con un preventivo su misura.',
+                    style: TextStyle(
+                      color: palette.textSecondary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: palette.primary),
+          ],
+        ),
+      ),
     );
   }
 }

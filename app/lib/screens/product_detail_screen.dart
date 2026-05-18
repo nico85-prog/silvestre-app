@@ -4,8 +4,8 @@ import '../models/photobook.dart';
 import '../models/product.dart';
 import '../state/cart_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/catalog_image.dart';
 import '../widgets/photo_picker_section.dart';
-import '../widgets/product_image.dart';
 import 'photobook/photobook_editor_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -63,13 +63,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
           SizedBox(
             height: 240,
-            child: ProductImage(
-              seed: 'detail_${product.id}',
-              categoryId: product.category,
-              width: 1200,
-              height: 800,
+            child: CatalogImage(
+              imageKey: product.id,
               borderRadius: BorderRadius.circular(20),
               fallbackIcon: product.icon,
+              showAttribution: true,
             ),
           ),
           const SizedBox(height: 18),

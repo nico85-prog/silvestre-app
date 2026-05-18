@@ -43,3 +43,10 @@ firebase/public/
 firebase-debug.log
 firestore-debug.log
 *.tmp
+
+# Word lock files
+~$*.docx
+~$*.doc
+
+# Firebase CLI cache
+.firebase/
