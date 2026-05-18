@@ -218,6 +218,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ],
               ),
               const Spacer(),
+              OutlinedButton(
+                onPressed: () =>
+                    Navigator.popUntil(context, (r) => r.isFirst),
+                child: const Text('Annulla'),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: () {
                   final variant = product.variants
@@ -241,7 +247,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       duration: const Duration(seconds: 2),
                     ),
                   );
-                  Navigator.pop(context);
+                  Navigator.popUntil(context, (r) => r.isFirst);
                 },
                 icon: const Icon(Icons.add_shopping_cart),
                 label: const Text('Aggiungi'),
