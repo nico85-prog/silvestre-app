@@ -41,8 +41,11 @@ class CatalogImagesState extends ChangeNotifier {
     if (_loading || _loaded) return;
     _loading = true;
     try {
-      final snap =
-          await FirebaseFirestore.instance.collection('catalog_images').get();
+      // Force server fetch — bypass Firestore offline cache so admin
+      // updates (via fetch_pexels_images workflow) are visible immediately.
+      final snap = await FirebaseFirestore.instance
+          .collection('catalog_images')
+          .get(const GetOptions(source: Source.server));
       for (final doc in snap.docs) {
         _byKey[doc.id] = CatalogImageInfo.fromFirestore(doc.data());
       }
