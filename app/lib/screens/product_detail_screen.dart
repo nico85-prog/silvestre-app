@@ -23,6 +23,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<PhotobookPage> _photobookPages = [];
 
   bool get _isPhotobook => widget.product.category == 'photobook';
+  bool get _isPrint => widget.product.category == 'stampa';
 
   Future<void> _openPhotobookEditor() async {
     final variant = widget.product.variants
@@ -165,9 +166,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           else
             PhotoPickerSection(
               initialUrls: _photoUrls,
-              onChanged: (urls) => setState(() => _photoUrls = urls),
-              subtitle:
-                  'Carica le foto da stampare/utilizzare per questo prodotto.',
+              onChanged: (urls) => setState(() {
+                _photoUrls = urls;
+                if (_isPrint && urls.isNotEmpty) {
+                  _quantity = urls.length.clamp(1, 9999);
+                }
+              }),
+              subtitle: _isPrint
+                  ? 'Carica le foto da stampare. La quantità si imposta '
+                      'automaticamente al numero di foto (modificabile).'
+                  : 'Carica le foto da stampare/utilizzare per questo prodotto.',
             ),
           const SizedBox(height: 80),
         ],
