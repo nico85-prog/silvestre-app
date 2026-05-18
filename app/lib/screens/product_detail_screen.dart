@@ -241,10 +241,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ],
               ),
               const Spacer(),
-              OutlinedButton(
-                onPressed: () =>
-                    Navigator.popUntil(context, (r) => r.isFirst),
-                child: const Text('Annulla'),
+              IconButton(
+                tooltip: 'Indietro',
+                style: IconButton.styleFrom(
+                  side: BorderSide(color: palette.border),
+                  padding: const EdgeInsets.all(12),
+                ),
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
@@ -270,7 +274,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       duration: const Duration(seconds: 2),
                     ),
                   );
-                  Navigator.popUntil(context, (r) => r.isFirst);
+                  Navigator.pop(context);
                 },
                 icon: const Icon(Icons.add_shopping_cart),
                 label: const Text('Aggiungi'),
