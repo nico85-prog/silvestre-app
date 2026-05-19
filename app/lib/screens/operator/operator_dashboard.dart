@@ -80,50 +80,56 @@ class OperatorDashboard extends StatelessWidget {
                     'Ordini in lavorazione da oltre ${lateHours}h. Tocca "Ordini" per gestirli.',
               ),
             const SizedBox(height: 8),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              children: [
-                _StatCard(
-                  label: 'Ordini oggi',
-                  value: '$todayCount',
-                  sub: 'di $dailyLimit max',
-                  icon: Icons.today,
-                  color: palette.primary,
-                  onTap: () => operatorNavState.goToOrders(todayOnly: true),
-                ),
-                _StatCard(
-                  label: 'Da fare',
-                  value: '${pending.length}',
-                  sub: 'ricevuti + in lavorazione',
-                  icon: Icons.pending_actions,
-                  color: palette.warning,
-                  onTap: () => operatorNavState.goToOrders(
-                      filter: OrderStatus.submitted),
-                ),
-                _StatCard(
-                  label: 'Da ritirare',
-                  value: '${ready.length}',
-                  sub: 'pronti in negozio',
-                  icon: Icons.local_mall,
-                  color: palette.success,
-                  onTap: () => operatorNavState.goToOrders(
-                      filter: OrderStatus.readyForPickup),
-                ),
-                _StatCard(
-                  label: 'Ultimi 7 gg',
-                  value: '€ ${weekRevenue.toStringAsFixed(0)}',
-                  sub: '${week.length} ordini',
-                  icon: Icons.trending_up,
-                  color: palette.secondary,
-                  onTap: () => operatorNavState.goToOrders(),
-                ),
-              ],
-            ),
+            // Responsive: 4 cards/row se larghezza >= 900 (PC/tablet landscape),
+            // 2 cards/row altrimenti (mobile/finestra stretta).
+            LayoutBuilder(builder: (ctx, c) {
+              final wide = c.maxWidth >= 900;
+              return GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: wide ? 4 : 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: wide ? 1.4 : 1.5,
+                children: [
+                  _StatCard(
+                    label: 'Ordini oggi',
+                    value: '$todayCount',
+                    sub: 'di $dailyLimit max',
+                    icon: Icons.today,
+                    color: const Color(0xFFF47521), // arancione Silvestre
+                    onTap: () =>
+                        operatorNavState.goToOrders(todayOnly: true),
+                  ),
+                  _StatCard(
+                    label: 'Da fare',
+                    value: '${pending.length}',
+                    sub: 'ricevuti + in lavorazione',
+                    icon: Icons.pending_actions,
+                    color: const Color(0xFFD32F2F), // rosso
+                    onTap: () => operatorNavState.goToOrders(
+                        filter: OrderStatus.submitted),
+                  ),
+                  _StatCard(
+                    label: 'Da ritirare',
+                    value: '${ready.length}',
+                    sub: 'pronti in negozio',
+                    icon: Icons.local_mall,
+                    color: const Color(0xFF2E7D32), // verde
+                    onTap: () => operatorNavState.goToOrders(
+                        filter: OrderStatus.readyForPickup),
+                  ),
+                  _StatCard(
+                    label: 'Ultimi 7 gg',
+                    value: '€ ${weekRevenue.toStringAsFixed(0)}',
+                    sub: '${week.length} ordini',
+                    icon: Icons.trending_up,
+                    color: const Color(0xFF1976D2), // blu
+                    onTap: () => operatorNavState.goToOrders(),
+                  ),
+                ],
+              );
+            }),
             const SizedBox(height: 24),
             Text('Ordini di oggi',
                 style: textTheme.titleMedium
@@ -235,9 +241,9 @@ class _StatCard extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: palette.surface,
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: palette.border),
+          border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,7 +253,7 @@ class _StatCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
+                    color: color.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 22),
@@ -259,15 +265,15 @@ class _StatCard extends StatelessWidget {
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: palette.textSecondary),
+                        fontWeight: FontWeight.w700,
+                        color: color),
                   ),
                 ),
                 if (onTap != null)
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: Icon(Icons.chevron_right,
-                        size: 18, color: palette.textSecondary),
+                        size: 18, color: color),
                   ),
               ],
             ),
@@ -276,7 +282,7 @@ class _StatCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
-                  color: palette.textPrimary,
+                  color: color,
                 )),
             Text(sub,
                 style: TextStyle(
