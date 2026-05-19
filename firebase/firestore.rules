@@ -59,12 +59,25 @@ service cloud.firestore {
     }
 
     // ---- orders ----
-    // Customer can create own and read own; staff can read/update all; admin can delete.
+    // Customer can create own + read own.
+    // Customer can update own SOLO per:
+    //   - draft → qualsiasi (carrello in modifica)
+    //   - quoteRequested → cancelled (declina preventivo prima della risposta)
+    //   - quoted → submitted (accetta preventivo dopo pagamento)
+    //   - quoted → cancelled (declina preventivo ricevuto)
+    // Staff (= admin/operatore) può aggiornare tutto.
     match /orders/{orderId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow read: if isOwner(resource.data.userId) || isStaff();
-      allow update: if isStaff() || (isOwner(resource.data.userId) &&
-        resource.data.status == 'draft');
+      allow update: if isStaff() || (
+        isOwner(resource.data.userId) && (
+          resource.data.status == 'draft' ||
+          (resource.data.status == 'quoteRequested' &&
+            request.resource.data.status == 'cancelled') ||
+          (resource.data.status == 'quoted' &&
+            request.resource.data.status in ['submitted', 'cancelled'])
+        )
+      );
       allow delete: if isAdmin();
     }
 
