@@ -821,15 +821,20 @@ class _MessageSheet extends StatefulWidget {
 
 class _MessageSheetState extends State<_MessageSheet> {
   late final TextEditingController _controller;
-  String _selectedKey = 'ready';
   String? _customerEmail;
   bool _loadingEmail = true;
 
   @override
   void initState() {
     super.initState();
-    _selectedKey = widget.prefillTemplateKey ?? 'ready';
-    _controller = TextEditingController(text: _render(_selectedKey));
+    // Messaggio custom: parte vuoto se non c'è prefill template specifico.
+    // I template di stato sono ora collegati automaticamente ai bottoni
+    // 'Avvia lavorazione' / 'Pronto' / 'Ritirato' nell'action panel.
+    _controller = TextEditingController(
+      text: widget.prefillTemplateKey != null
+          ? _render(widget.prefillTemplateKey!)
+          : '',
+    );
     _loadCustomerEmail();
   }
 
@@ -892,7 +897,6 @@ class _MessageSheetState extends State<_MessageSheet> {
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
-    final templates = settingsState.settings.messageTemplates;
     final msg = _controller.text;
 
     return Container(
@@ -940,21 +944,12 @@ class _MessageSheetState extends State<_MessageSheet> {
             palette: palette,
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            children: templates.keys.map((k) {
-              final isSelected = k == _selectedKey;
-              return ChoiceChip(
-                label: Text(_labelFor(k)),
-                selected: isSelected,
-                onSelected: (_) => setState(() {
-                  _selectedKey = k;
-                  _controller.text = _render(k);
-                }),
-              );
-            }).toList(),
+          Text(
+            'Scrivi un messaggio libero al cliente '
+            '(es. per chiedere info aggiuntive).',
+            style: TextStyle(fontSize: 12, color: palette.textSecondary),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           TextField(
             controller: _controller,
             maxLines: 4,
@@ -1051,13 +1046,6 @@ class _MessageSheetState extends State<_MessageSheet> {
     );
   }
 
-  String _labelFor(String k) => switch (k) {
-        'submitted' => 'Ricevuto',
-        'inProduction' => 'In lavorazione',
-        'ready' => 'Pronto',
-        'pickedUp' => 'Ritirato',
-        _ => k,
-      };
 }
 
 class _SendButton extends StatelessWidget {

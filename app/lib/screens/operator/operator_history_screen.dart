@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/order.dart';
+import '../../state/operator_nav_state.dart';
 import '../../state/orders_state.dart';
 import '../../theme/app_theme.dart';
 import 'operator_order_detail_screen.dart';
@@ -44,15 +45,32 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
 
     return AnimatedBuilder(
-      animation: ordersState,
+      animation: Listenable.merge([ordersState, operatorNavState]),
       builder: (context, _) {
+        // Filtro proveniente dalla dashboard (tap su stat card)
+        final navFilter = operatorNavState.ordersFilter;
+        final navTodayOnly = operatorNavState.ordersTodayOnly;
+        // Filtro effettivo: nav (se settato) altrimenti locale
+        final effectiveFilter = navFilter ?? _filterStatus;
+
         // Ordini tutti, sortati per data decrescente
         var orders = List<CustomerOrder>.from(ordersState.orders);
         orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         // Filtri
-        if (_filterStatus != null) {
-          orders = orders.where((o) => o.status == _filterStatus).toList();
+        if (effectiveFilter != null) {
+          orders =
+              orders.where((o) => o.status == effectiveFilter).toList();
+        }
+        if (navTodayOnly) {
+          final now = DateTime.now();
+          final start = DateTime(now.year, now.month, now.day);
+          final end = start.add(const Duration(days: 1));
+          orders = orders
+              .where((o) =>
+                  o.createdAt.isAfter(start) &&
+                  o.createdAt.isBefore(end))
+              .toList();
         }
         if (_from != null) {
           final start = DateTime(_from!.year, _from!.month, _from!.day);
@@ -135,15 +153,21 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
                 children: [
                   _FilterChip(
                     label: 'Tutti',
-                    selected: _filterStatus == null,
-                    onTap: () => setState(() => _filterStatus = null),
+                    selected: effectiveFilter == null,
+                    onTap: () {
+                      operatorNavState.clearFilter();
+                      setState(() => _filterStatus = null);
+                    },
                     color: palette.primary,
                   ),
                   for (final s in OrderStatus.values)
                     _FilterChip(
                       label: s.label,
-                      selected: _filterStatus == s,
-                      onTap: () => setState(() => _filterStatus = s),
+                      selected: effectiveFilter == s,
+                      onTap: () {
+                        operatorNavState.clearFilter();
+                        setState(() => _filterStatus = s);
+                      },
                       color: s.colorOn(context),
                     ),
                 ],

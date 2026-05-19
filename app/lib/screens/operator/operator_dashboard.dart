@@ -90,41 +90,41 @@ class OperatorDashboard extends StatelessWidget {
                 crossAxisCount: wide ? 4 : 2,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: wide ? 1.4 : 1.5,
+                childAspectRatio: wide ? 1.0 : 1.05,
                 children: [
                   _StatCard(
-                    label: 'Ordini oggi',
-                    value: '$todayCount',
-                    sub: 'di $dailyLimit max',
-                    icon: Icons.today,
-                    color: const Color(0xFFF47521), // arancione Silvestre
-                    onTap: () =>
-                        operatorNavState.goToOrders(todayOnly: true),
-                  ),
-                  _StatCard(
-                    label: 'Da fare',
+                    label: 'Da Fare',
                     value: '${pending.length}',
-                    sub: 'ricevuti + in lavorazione',
+                    sub: 'Qui ci sono tutti gli ordini ricevuti e in lavorazione',
                     icon: Icons.pending_actions,
-                    color: const Color(0xFFD32F2F), // rosso
+                    color: const Color(0xFFD32F2F),
                     onTap: () => operatorNavState.goToOrders(
                         filter: OrderStatus.submitted),
                   ),
                   _StatCard(
-                    label: 'Da ritirare',
+                    label: 'Da Ritirare',
                     value: '${ready.length}',
-                    sub: 'pronti in negozio',
+                    sub: 'Qui ci sono tutti gli ordini pronti in negozio e ritirati',
                     icon: Icons.local_mall,
-                    color: const Color(0xFF2E7D32), // verde
+                    color: const Color(0xFF2E7D32),
                     onTap: () => operatorNavState.goToOrders(
                         filter: OrderStatus.readyForPickup),
                   ),
                   _StatCard(
+                    label: 'Ordini di Oggi',
+                    value: '$todayCount',
+                    sub: 'Qui ci sono tutti gli ordini ricevuti oggi (su $dailyLimit max)',
+                    icon: Icons.today,
+                    color: const Color(0xFFF47521),
+                    onTap: () =>
+                        operatorNavState.goToOrders(todayOnly: true),
+                  ),
+                  _StatCard(
                     label: 'Ultimi 7 gg',
                     value: '€ ${weekRevenue.toStringAsFixed(0)}',
-                    sub: '${week.length} ordini',
+                    sub: 'Ricavo degli ordini degli ultimi 7 giorni (${week.length} ordini)',
                     icon: Icons.trending_up,
-                    color: const Color(0xFF1976D2), // blu
+                    color: const Color(0xFF1976D2),
                     onTap: () => operatorNavState.goToOrders(),
                   ),
                 ],
@@ -251,42 +251,45 @@ class _StatCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(7),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 22),
+                  child: Icon(icon, color: color, size: 26),
                 ),
-                const Spacer(),
-                Flexible(
+                const SizedBox(width: 8),
+                Expanded(
                   child: Text(
                     label,
-                    textAlign: TextAlign.right,
                     style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
                         color: color),
                   ),
                 ),
                 if (onTap != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: Icon(Icons.chevron_right,
-                        size: 18, color: color),
-                  ),
+                  Icon(Icons.chevron_right, size: 22, color: color),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(value,
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 40,
                   fontWeight: FontWeight.w800,
                   color: color,
+                  height: 1.0,
                 )),
-            Text(sub,
-                style: TextStyle(
-                    fontSize: 13, color: palette.textSecondary)),
+            const SizedBox(height: 6),
+            Expanded(
+              child: Text(sub,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 14,
+                      height: 1.3,
+                      color: palette.textSecondary)),
+            ),
           ],
         ),
       ),
