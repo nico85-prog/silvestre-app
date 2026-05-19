@@ -747,8 +747,15 @@ class _QuoteFormState extends State<_QuoteForm> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.send_outlined),
-                label: const Text('Invia preventivo'),
+                    : const Icon(Icons.chat),
+                label: const Text('Invia preventivo via WhatsApp'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366), // WhatsApp green
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 15),
+                ),
                 onPressed: _sending ? null : _send,
               ),
             ),
