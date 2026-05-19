@@ -1,0 +1,18 @@
+name: Customize Email Template
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch Firebase email template
+        working-directory: docs
+        env:
+          FIREBASE_REFRESH_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: python customize_email_template.py
