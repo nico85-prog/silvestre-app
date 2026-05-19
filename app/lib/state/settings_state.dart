@@ -9,10 +9,17 @@ class StoreSettings {
   const StoreSettings({
     this.dailyOrderLimit = 20,
     this.messageTemplates = const {
+      'quoted':
+          'Ciao {{name}},\necco il preventivo per la tua richiesta "{{title}}":\n\n'
+          'La tua richiesta:\n{{description}}\n\n'
+          'PREVENTIVO:\n- Importo: € {{amount}}\n- Tempi: {{eta}}\n'
+          '- Codice ordine: {{code}}\n{{note}}\n'
+          'Per confermare apri l\'app Silvestre Fotoservizi → Lavoro Personalizzato → '
+          '"Ho già un codice preventivo" → inserisci {{code}} → paga.\n\n'
+          'Silvestre Fotoservizi · Frattamaggiore (NA)',
       'submitted': 'Ciao {{name}}, abbiamo ricevuto il tuo ordine {{code}}. Ti aggiorniamo non appena è pronto.',
       'inProduction': 'Ciao {{name}}, stiamo lavorando al tuo ordine {{code}}.',
       'ready': 'Ciao {{name}}, il tuo ordine {{code}} è pronto per il ritiro! Ti aspettiamo in Via Vittorio Emanuele III, 205 — 80027 Frattamaggiore (NA). Orari: Lun-Sab 09:00-13:00.',
-      'pickedUp': 'Ciao {{name}}, grazie per essere passato da Silvestre Fotoservizi! A presto.',
       'cancelled': 'Ciao {{name}}, il tuo ordine {{code}} è stato annullato. Se hai dubbi contattaci al +39 335 169 7903.',
     },
     this.lateOrderHours = 48,
@@ -88,12 +95,28 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  String renderTemplate(String key,
-      {required String name, required String code}) {
+  /// Rende il template sostituendo i placeholder {{name}}, {{code}}, e
+  /// opzionalmente {{title}}, {{description}}, {{amount}}, {{eta}}, {{note}}
+  /// (questi ultimi usati nel template 'quoted').
+  String renderTemplate(
+    String key, {
+    required String name,
+    required String code,
+    String? title,
+    String? description,
+    String? amount,
+    String? eta,
+    String? note,
+  }) {
     final tmpl = _settings.messageTemplates[key] ?? '';
     return tmpl
         .replaceAll('{{name}}', name)
-        .replaceAll('{{code}}', code);
+        .replaceAll('{{code}}', code)
+        .replaceAll('{{title}}', title ?? '')
+        .replaceAll('{{description}}', description ?? '')
+        .replaceAll('{{amount}}', amount ?? '')
+        .replaceAll('{{eta}}', eta ?? '')
+        .replaceAll('{{note}}', note ?? '');
   }
 }
 

@@ -636,38 +636,23 @@ class _QuoteFormState extends State<_QuoteForm> {
         operatorNote: _note.text.trim().isEmpty ? null : _note.text.trim(),
       );
       if (!mounted) return;
-      // Auto-apre WhatsApp col messaggio preventivo che include:
-      //   - titolo + descrizione della richiesta cliente
-      //   - importo, tempi
-      //   - codice univoco ordine
-      //   - eventuale nota operatore
-      //   - istruzioni per accettare nell'app
+      // Auto-apre WhatsApp col messaggio preventivo costruito dal template
+      // configurabile in Impostazioni → Template messaggi cliente → 'quoted'.
       final code = widget.order.pickupCode;
       final name = widget.order.customerName ?? 'cliente';
       final title = widget.order.customRequestTitle ?? '';
       final desc = widget.order.customRequestDescription ?? '';
       final note = _note.text.trim();
-
-      final buf = StringBuffer();
-      buf.write('Ciao $name,\n');
-      buf.write('ecco il preventivo per la tua richiesta');
-      if (title.isNotEmpty) buf.write(' "$title"');
-      buf.write(':\n\n');
-      if (desc.isNotEmpty) {
-        buf.write('La tua richiesta:\n$desc\n\n');
-      }
-      buf.write('PREVENTIVO:\n');
-      buf.write('- Importo: € ${amount.toStringAsFixed(2)}\n');
-      buf.write('- Tempi: ${_eta.text.trim()}\n');
-      buf.write('- Codice ordine: $code\n');
-      if (note.isNotEmpty) {
-        buf.write('- Nota: $note\n');
-      }
-      buf.write('\nPer confermare apri l\'app Silvestre Fotoservizi → '
-          'Lavoro Personalizzato → "Ho già un codice preventivo" → '
-          'inserisci $code → paga.\n\n');
-      buf.write('Silvestre Fotoservizi · Frattamaggiore (NA)');
-      final message = buf.toString();
+      final message = settingsState.renderTemplate(
+        'quoted',
+        name: name,
+        code: code,
+        title: title,
+        description: desc,
+        amount: amount.toStringAsFixed(2),
+        eta: _eta.text.trim(),
+        note: note.isEmpty ? '' : '- Nota: $note\n',
+      );
       final phone = widget.order.customerPhone ?? '';
       bool waOpened = false;
       if (phone.isNotEmpty) {
