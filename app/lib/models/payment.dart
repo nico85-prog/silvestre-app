@@ -25,7 +25,7 @@ extension PaymentMethodX on PaymentMethod {
         PaymentMethod.satispay =>
             'Pagamento istantaneo dall\'app Satispay.',
         PaymentMethod.inStore =>
-            'Paghi al momento del ritiro in negozio.',
+            'Versa il 20% di caparra ora (carta o Satispay). Il saldo lo paghi al ritiro.',
       };
 
   static PaymentMethod fromKey(String? k) =>
@@ -40,12 +40,20 @@ class PaymentResult {
   final String? transactionId;
   final bool paidNow;
   final String? lastFour; // for card display
+  // Caparra: usata SOLO quando method=inStore.
+  // depositAmount > 0 = 20% versato online; saldo restante in negozio al ritiro.
+  final double depositAmount;
+  final PaymentMethod? depositMethod;
+  final String? depositTransactionId;
 
   const PaymentResult({
     required this.method,
     this.transactionId,
     required this.paidNow,
     this.lastFour,
+    this.depositAmount = 0,
+    this.depositMethod,
+    this.depositTransactionId,
   });
 
   Map<String, dynamic> toFirestore() => {
@@ -53,5 +61,12 @@ class PaymentResult {
         'transactionId': transactionId,
         'paidNow': paidNow,
         'lastFour': lastFour,
+        if (depositAmount > 0) 'depositAmount': depositAmount,
+        if (depositMethod != null) 'depositMethod': depositMethod!.name,
+        if (depositTransactionId != null)
+          'depositTransactionId': depositTransactionId,
       };
 }
+
+/// Percentuale caparra obbligatoria per "Paga in negozio".
+const double kDepositPercentage = 0.20;

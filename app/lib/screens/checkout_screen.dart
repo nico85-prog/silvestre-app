@@ -29,15 +29,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  double get _depositAmount =>
+      double.parse((widget.total * kDepositPercentage).toStringAsFixed(2));
+  double get _balanceAmount =>
+      double.parse((widget.total - _depositAmount).toStringAsFixed(2));
+
   Future<void> _proceed() async {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
     PaymentResult? result;
 
     switch (_selected) {
       case PaymentMethod.inStore:
-        result = const PaymentResult(
-          method: PaymentMethod.inStore,
-          paidNow: false,
+        // Caparra 20% obbligatoria → scegli Carta o Satispay per il deposito
+        result = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _DepositSheet(
+            depositAmount: _depositAmount,
+            balanceAmount: _balanceAmount,
+            total: widget.total,
+            palette: palette,
+          ),
         );
         break;
       case PaymentMethod.card:
@@ -172,7 +185,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   String get _ctaLabel => switch (_selected) {
-        PaymentMethod.inStore => 'Conferma ordine (paga in negozio)',
+        PaymentMethod.inStore =>
+            'Versa caparra € ${_depositAmount.toStringAsFixed(2)} e conferma',
         PaymentMethod.card => 'Paga € ${widget.total.toStringAsFixed(2)} con carta',
         PaymentMethod.satispay =>
             'Paga € ${widget.total.toStringAsFixed(2)} con Satispay',
@@ -620,4 +634,236 @@ class _FakeQrPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _DepositSheet extends StatefulWidget {
+  final double depositAmount;
+  final double balanceAmount;
+  final double total;
+  final SilvestrePalette palette;
+  const _DepositSheet({
+    required this.depositAmount,
+    required this.balanceAmount,
+    required this.total,
+    required this.palette,
+  });
+
+  @override
+  State<_DepositSheet> createState() => _DepositSheetState();
+}
+
+class _DepositSheetState extends State<_DepositSheet> {
+  PaymentMethod _depositVia = PaymentMethod.card;
+
+  Future<void> _payDeposit() async {
+    PaymentResult? subResult;
+    final palette = widget.palette;
+    if (_depositVia == PaymentMethod.card) {
+      subResult = await showModalBottomSheet<PaymentResult>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) =>
+            _StripeCardSheet(total: widget.depositAmount, palette: palette),
+      );
+    } else {
+      subResult = await showModalBottomSheet<PaymentResult>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) =>
+            _SatispaySheet(total: widget.depositAmount, palette: palette),
+      );
+    }
+    if (subResult == null) return;
+    if (!mounted) return;
+    Navigator.pop(
+      context,
+      PaymentResult(
+        method: PaymentMethod.inStore,
+        paidNow: false,
+        depositAmount: widget.depositAmount,
+        depositMethod: _depositVia,
+        depositTransactionId: subResult.transactionId,
+        lastFour: subResult.lastFour,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lock_outline, color: palette.primary),
+              const SizedBox(width: 8),
+              Text("Caparra obbligatoria",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: palette.textPrimary,
+                  )),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Per confermare l'ordine devi versare il 20% di caparra. Il saldo lo paghi al ritiro in negozio.",
+            style: TextStyle(color: palette.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: palette.border),
+            ),
+            child: Column(
+              children: [
+                _depRow("Totale ordine",
+                    "EUR ${widget.total.toStringAsFixed(2)}", palette,
+                    bold: false),
+                const SizedBox(height: 6),
+                _depRow(
+                    "Caparra (20%, paga ora)",
+                    "EUR ${widget.depositAmount.toStringAsFixed(2)}",
+                    palette,
+                    bold: true,
+                    highlight: true),
+                const SizedBox(height: 6),
+                _depRow(
+                    "Saldo (al ritiro)",
+                    "EUR ${widget.balanceAmount.toStringAsFixed(2)}",
+                    palette,
+                    bold: false),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text("Come paghi la caparra?",
+              style: TextStyle(
+                  fontWeight: FontWeight.w700, color: palette.textPrimary)),
+          const SizedBox(height: 8),
+          _DepositMethodTile(
+            method: PaymentMethod.card,
+            selected: _depositVia == PaymentMethod.card,
+            onTap: () => setState(() => _depositVia = PaymentMethod.card),
+            palette: palette,
+          ),
+          _DepositMethodTile(
+            method: PaymentMethod.satispay,
+            selected: _depositVia == PaymentMethod.satispay,
+            onTap: () => setState(() => _depositVia = PaymentMethod.satispay),
+            palette: palette,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.lock),
+              label: Text(
+                  "Versa EUR ${widget.depositAmount.toStringAsFixed(2)} di caparra"),
+              onPressed: _payDeposit,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Annulla"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _depRow(String k, String v, SilvestrePalette palette,
+      {bool bold = false, bool highlight = false}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(k,
+              style: TextStyle(
+                color: highlight ? palette.primary : palette.textSecondary,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 13,
+              )),
+        ),
+        Text(v,
+            style: TextStyle(
+              color: highlight ? palette.primary : palette.textPrimary,
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+              fontSize: bold ? 16 : 13,
+            )),
+      ],
+    );
+  }
+}
+
+class _DepositMethodTile extends StatelessWidget {
+  final PaymentMethod method;
+  final bool selected;
+  final VoidCallback onTap;
+  final SilvestrePalette palette;
+  const _DepositMethodTile({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+    required this.palette,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = method == PaymentMethod.card
+        ? const Color(0xFF635BFF)
+        : const Color(0xFFEB4F2A);
+    final icon = method == PaymentMethod.card
+        ? Icons.credit_card
+        : Icons.smartphone;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color:
+                selected ? accent.withValues(alpha: 0.08) : palette.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: selected ? accent : palette.border,
+                width: selected ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(method.label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: palette.textPrimary,
+                    )),
+              ),
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: selected ? accent : palette.textSecondary,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
