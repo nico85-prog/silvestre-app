@@ -43,6 +43,105 @@ class OperatorOrderDetailScreen extends StatelessWidget {
                   _Row(Icons.tag, 'User ID', live.userId.substring(0, 8)),
                 ],
               ),
+              // Richiesta personalizzata: titolo + descrizione + foto allegate
+              if (live.isCustomRequest) ...[
+                const SizedBox(height: 20),
+                _Section(
+                    title: 'Richiesta personalizzata del cliente',
+                    palette: palette),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: palette.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: palette.warning.withValues(alpha: 0.4),
+                        width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.auto_fix_high,
+                              color: palette.warning, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              live.customRequestTitle ?? '(senza titolo)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                color: palette.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if ((live.customRequestDescription ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'DESCRIZIONE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: palette.textSecondary,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          live.customRequestDescription!,
+                          style: TextStyle(
+                            color: palette.textPrimary,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                      if (live.customRequestPhotoUrls.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'FOTO ALLEGATE (${live.customRequestPhotoUrls.length})',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: palette.textSecondary,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 80,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: live.customRequestPhotoUrls.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 6),
+                            itemBuilder: (_, i) => ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                live.customRequestPhotoUrls[i],
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: palette.border,
+                                  child: const Icon(
+                                      Icons.broken_image_outlined),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               _Section(title: 'Articoli (${live.itemCount})', palette: palette),
               const SizedBox(height: 8),
