@@ -91,7 +91,15 @@ class OperatorDashboard extends StatelessWidget {
                 crossAxisSpacing: 10,
                 childAspectRatio: cols == 4 ? 1.5 : (cols == 3 ? 1.5 : 1.45),
                 children: [
-                  for (final s in OrderStatus.values)
+                  for (final s in const [
+                    OrderStatus.submitted,
+                    OrderStatus.inProduction,
+                    OrderStatus.readyForPickup,
+                    OrderStatus.pickedUp,
+                    OrderStatus.quoteRequested,
+                    OrderStatus.quoted,
+                    OrderStatus.cancelled,
+                  ])
                     _StatCard(
                       label: s.label,
                       value:
