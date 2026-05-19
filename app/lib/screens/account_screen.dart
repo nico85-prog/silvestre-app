@@ -181,9 +181,9 @@ class AccountScreen extends StatelessWidget {
             _Tile(
               icon: Icons.support_agent_outlined,
               title: 'Contatta il negozio',
-              subtitle: '+39 347 826 0320 (WhatsApp)',
+              subtitle: '+39 335 169 7903 (WhatsApp)',
               onTap: () => MessagingService.sendWhatsApp(
-                phone: '+393478260320',
+                phone: '+393351697903',
                 message:
                     'Ciao Silvestre Fotoservizi, ho bisogno di informazioni.',
               ),

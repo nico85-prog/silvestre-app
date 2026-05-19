@@ -108,7 +108,7 @@ class OperatorSettingsScreen extends StatelessWidget {
                   _kv(palette, 'Nome', 'Silvestre Fotoservizi'),
                   _kv(palette, 'Indirizzo',
                       'Via V. Emanuele III, 205 — 80027 Frattamaggiore (NA)'),
-                  _kv(palette, 'Telefono', '+39 347 826 0320'),
+                  _kv(palette, 'Telefono', '+39 335 169 7903'),
                   _kv(palette, 'Email', 'fotosilvestre1970@gmail.com'),
                   _kv(palette, 'Orari', 'Lun–Sab 09:00–13:00'),
                 ],

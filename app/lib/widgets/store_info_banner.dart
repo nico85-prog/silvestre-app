@@ -52,7 +52,7 @@ class StoreInfoBanner extends StatelessWidget {
           _InfoRow(Icons.location_on_outlined,
               'Via Vittorio Emanuele III, 205\n80027 Frattamaggiore (NA)'),
           const SizedBox(height: 8),
-          _InfoRow(Icons.phone_outlined, '+39 347 826 0320'),
+          _InfoRow(Icons.phone_outlined, '+39 335 169 7903'),
           const SizedBox(height: 8),
           _InfoRow(Icons.access_time, 'Lun-Sab 09:00 — 13:00'),
         ],
