@@ -87,9 +87,9 @@ class OperatorDashboard extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: cols,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: cols == 4 ? 1.1 : (cols == 3 ? 1.15 : 1.05),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: cols == 4 ? 1.5 : (cols == 3 ? 1.5 : 1.45),
                 children: [
                   for (final s in OrderStatus.values)
                     _StatCard(
@@ -260,11 +260,11 @@ class _StatCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Ink(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,43 +272,43 @@ class _StatCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(icon, color: color, size: 26),
+                  child: Icon(icon, color: color, size: 16),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 13,
                         fontWeight: FontWeight.w800,
                         color: color),
                   ),
                 ),
-                if (onTap != null)
-                  Icon(Icons.chevron_right, size: 22, color: color),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
-                  fontSize: 40,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: color,
                   height: 1.0,
                 )),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Expanded(
               child: Text(sub,
-                  maxLines: 3,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontSize: 14,
-                      height: 1.3,
+                      fontSize: 10.5,
+                      height: 1.25,
                       color: palette.textSecondary)),
             ),
           ],
