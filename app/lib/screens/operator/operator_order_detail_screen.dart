@@ -669,12 +669,56 @@ class _QuoteFormState extends State<_QuoteForm> {
       buf.write('Silvestre Fotoservizi · Frattamaggiore (NA)');
       final message = buf.toString();
       final phone = widget.order.customerPhone ?? '';
+      bool waOpened = false;
       if (phone.isNotEmpty) {
-        await MessagingService.sendWhatsApp(phone: phone, message: message);
+        try {
+          waOpened = await MessagingService.sendWhatsApp(
+              phone: phone, message: message);
+        } catch (e) {
+          debugPrint('WhatsApp launch error: $e');
+        }
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Preventivo inviato. Codice: $code')),
+      // Mostra dialog con il codice + bottone manuale per riaprire WhatsApp
+      // in caso il launch automatico non sia riuscito (PWA --app mode etc.).
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          icon: Icon(Icons.chat,
+              color: const Color(0xFF25D366), size: 40),
+          title: const Text('Preventivo salvato'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Codice ordine: $code',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(waOpened
+                  ? 'WhatsApp aperto col messaggio pre-compilato. Premi Invia in WhatsApp.'
+                  : phone.isEmpty
+                      ? 'ATTENZIONE: il cliente non ha un numero di telefono. Contattalo manualmente.'
+                      : 'WhatsApp non si è aperto automaticamente. Premi il bottone qui sotto per aprirlo.'),
+            ],
+          ),
+          actions: [
+            if (phone.isNotEmpty)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.chat),
+                label: const Text('Apri WhatsApp'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => MessagingService.sendWhatsApp(
+                    phone: phone, message: message),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Chiudi'),
+            ),
+          ],
+        ),
       );
     } catch (e) {
       if (!mounted) return;

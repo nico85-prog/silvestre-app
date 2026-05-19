@@ -26,9 +26,20 @@ class MessagingService {
     required String message,
   }) async {
     final p = normalizePhoneForWhatsApp(phone);
+    // Usa api.whatsapp.com (più robusto su browser/PWA rispetto a wa.me)
     final url = Uri.parse(
-        'https://wa.me/$p?text=${Uri.encodeComponent(message)}');
-    return launchUrl(url, mode: LaunchMode.externalApplication);
+        'https://api.whatsapp.com/send?phone=$p&text=${Uri.encodeComponent(message)}');
+    // platformDefault apre new tab su web (anche dentro Chrome --app mode);
+    // externalApplication apre WhatsApp/WhatsApp Business app su mobile.
+    try {
+      final ok = await launchUrl(url,
+          mode: LaunchMode.externalApplication,
+          webOnlyWindowName: '_blank');
+      if (ok) return true;
+    } catch (_) {}
+    // Fallback: platformDefault (mai dovrebbe servire ma per sicurezza)
+    return launchUrl(url,
+        mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
   }
 
   static Future<bool> sendSms({
