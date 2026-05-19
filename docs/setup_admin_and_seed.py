@@ -29,9 +29,9 @@ if not REFRESH_TOKEN:
         "ERRORE: imposta la variabile d'ambiente FIREBASE_REFRESH_TOKEN. "
         "Ottienila con: firebase.cmd login:ci")
 
-TARGET_EMAIL = "nicolarosano85@gmail.com"
+TARGET_EMAIL = "fotosilvestre1970@gmail.com"
 TEMP_PASSWORD = "AdminSilvestre2026!"  # tell user to change after login
-DISPLAY_NAME = "Nicola Rosano"
+DISPLAY_NAME = "Silvestre Fotoservizi"
 
 # ---------- HTTP HELPERS ----------
 

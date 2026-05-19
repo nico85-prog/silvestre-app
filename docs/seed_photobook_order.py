@@ -16,7 +16,7 @@ REFRESH_TOKEN = os.environ.get("FIREBASE_REFRESH_TOKEN")
 OAUTH_CLIENT_ID = "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"
 OAUTH_CLIENT_SECRET = os.environ.get(
     "FIREBASE_CLI_CLIENT_SECRET", "j9iVZfS8kkCEFUPaAeJV0sAi")
-TARGET_USER_EMAIL = "nicolarosano85@gmail.com"
+TARGET_USER_EMAIL = "fotosilvestre1970@gmail.com"
 if not REFRESH_TOKEN:
     raise SystemExit("ERRORE: imposta env var FIREBASE_REFRESH_TOKEN")
 
