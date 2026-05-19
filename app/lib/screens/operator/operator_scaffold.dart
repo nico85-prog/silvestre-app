@@ -58,11 +58,18 @@ class _OperatorScaffoldState extends State<OperatorScaffold> {
       builder: (_) => AlertDialog(
         icon: Icon(Icons.warning_amber_rounded,
             color: palette.warning, size: 48),
-        title: const Text('APRI WHATSAPP BUSINESS'),
+        title: const Text('APRI WHATSAPP BUSINESS\nSULLO STESSO DISPOSITIVO'),
         content: const Text(
-          'I messaggi di stato dell\'ordine (in lavorazione, pronto, ritirato) '
-          'partono solo se WhatsApp Business è aperto e raggiungibile sul telefono.\n\n'
-          'Apri ora WhatsApp Business e tienilo attivo durante il turno.',
+          'I messaggi di stato (in lavorazione, pronto, ritirato) partono '
+          'SOLO se WhatsApp Business è già attivo e loggato sullo stesso '
+          'dispositivo dove stai usando questa app.\n\n'
+          'SE STAI USANDO IL CELLULARE:\n'
+          'Apri WhatsApp Business sul telefono e lascialo in background.\n\n'
+          'SE STAI USANDO IL PC O TABLET:\n'
+          'Apri web.whatsapp.com in una scheda Chrome e scansiona il QR col '
+          'telefono dove gira WhatsApp Business +39 335 169 7903. '
+          'Lascia la scheda aperta durante il turno.\n\n'
+          'Senza questo, premendo "Pronto" / "Ritirato" il messaggio NON parte.',
           style: TextStyle(height: 1.4),
         ),
         actions: [
