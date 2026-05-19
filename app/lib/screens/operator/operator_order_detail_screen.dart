@@ -636,8 +636,26 @@ class _QuoteFormState extends State<_QuoteForm> {
         operatorNote: _note.text.trim().isEmpty ? null : _note.text.trim(),
       );
       if (!mounted) return;
+      // Auto-apre WhatsApp col messaggio preventivo che include il codice unico
+      final code = widget.order.pickupCode;
+      final name = widget.order.customerName ?? 'cliente';
+      final note = _note.text.trim().isEmpty
+          ? ''
+          : '\nNota: ${_note.text.trim()}';
+      final message =
+          'Ciao $name, ecco il preventivo per la tua richiesta:\n\n'
+          'IMPORTO: € ${amount.toStringAsFixed(2)}\n'
+          'TEMPI: ${_eta.text.trim()}\n'
+          'CODICE ORDINE: $code$note\n\n'
+          'Per confermare apri l\'app Silvestre Fotoservizi → Lavoro Personalizzato → '
+          '"Ho già un codice preventivo" → inserisci $code → paga.';
+      final phone = widget.order.customerPhone ?? '';
+      if (phone.isNotEmpty) {
+        await MessagingService.sendWhatsApp(phone: phone, message: message);
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preventivo inviato al cliente.')),
+        SnackBar(content: Text('Preventivo inviato. Codice: $code')),
       );
     } catch (e) {
       if (!mounted) return;

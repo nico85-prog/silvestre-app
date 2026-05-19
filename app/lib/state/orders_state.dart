@@ -149,11 +149,33 @@ class OrdersState extends ChangeNotifier {
     });
   }
 
-  /// Il cliente accetta il preventivo → diventa ordine normale (submitted).
-  Future<void> acceptQuote(String orderId) async {
-    await _db.collection('orders').doc(orderId).update({
+  /// Cerca un ordine in stato 'quoted' per il dato pickupCode e userId.
+  /// Usato dal cliente che inserisce il codice ricevuto via WhatsApp.
+  Future<CustomerOrder?> findQuoteByCode({
+    required String pickupCode,
+    required String userId,
+  }) async {
+    final snap = await _db
+        .collection('orders')
+        .where('pickupCode', isEqualTo: pickupCode.trim().toUpperCase())
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: OrderStatus.quoted.name)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return CustomerOrder.fromFirestore(snap.docs.first.id, snap.docs.first.data());
+  }
+
+  /// Il cliente accetta il preventivo dopo aver pagato → submitted.
+  /// Salva anche il PaymentResult.
+  Future<void> acceptQuote(String orderId, {PaymentResult? payment}) async {
+    final updates = <String, dynamic>{
       'status': OrderStatus.submitted.name,
-    });
+    };
+    if (payment != null) {
+      updates['payment'] = payment.toFirestore();
+    }
+    await _db.collection('orders').doc(orderId).update(updates);
   }
 
   /// Il cliente declina il preventivo → ordine cancellato.

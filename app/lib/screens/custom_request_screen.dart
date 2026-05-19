@@ -3,6 +3,7 @@ import '../state/auth_state.dart';
 import '../state/orders_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/photo_picker_section.dart';
+import 'quote_accept_screen.dart';
 
 /// Form per richiedere un preventivo per "lavoro personalizzato"
 /// (qualcosa che il cliente vuole ma non c'è nel catalogo standard).
@@ -95,6 +96,22 @@ class _CustomRequestScreenState extends State<CustomRequestScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // CTA per chi ha già ricevuto un preventivo via WhatsApp
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.confirmation_number_outlined),
+                  label: const Text(
+                      'Ho già un codice preventivo (procedi al pagamento)'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: palette.primary, width: 1.5),
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const EnterQuoteCodeScreen()),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
