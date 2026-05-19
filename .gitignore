@@ -11,6 +11,10 @@ GoogleService-Info.plist
 master_account.txt
 *_account.txt
 
+# Customer contacts (privacy / GDPR)
+Contatti_Clienti.csv
+contacts.csv
+
 # OS
 .DS_Store
 Thumbs.db
