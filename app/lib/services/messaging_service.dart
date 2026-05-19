@@ -5,11 +5,19 @@ import 'package:url_launcher/url_launcher.dart';
 /// Zero backend, zero costi, funziona ovunque (web apre WhatsApp Web).
 class MessagingService {
   /// Formato internazionale richiesto da WhatsApp (es. 393331234567).
-  /// Per default assume IT (+39) se il numero inizia con 3 senza prefisso.
+  /// Gestisce tutte le variazioni che il cliente potrebbe inserire:
+  ///   +39 350 123 4567, +393501234567, 39 350 123 4567,
+  ///   0039 350 1234567, 350-1234567, 350.1234567, 3501234567
   static String normalizePhoneForWhatsApp(String phone) {
-    var n = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (n.startsWith('+')) n = n.substring(1);
-    if (!n.startsWith('39') && n.startsWith('3')) n = '39$n';
+    // Strip TUTTO tranne le cifre
+    var n = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    // 00 prefix internazionale → rimuovi
+    if (n.startsWith('00')) n = n.substring(2);
+    // Mobile italiano senza prefisso (es. 350...) → aggiungi 39
+    if (n.length >= 9 && n.length <= 11 && n.startsWith('3') &&
+        !n.startsWith('39')) {
+      n = '39$n';
+    }
     return n;
   }
 
