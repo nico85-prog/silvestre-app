@@ -42,7 +42,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           _p(context,
               'Silvestre Fotoservizi S.a.s. — Via Vittorio Emanuele III, 205, '
               '80027 Frattamaggiore (NA). Email: fotosilvestre1970@gmail.com — '
-              'Tel: +39 081 830 6365.'),
+              'Tel: +39 347 826 0320.'),
           _h(context, 'Dati raccolti'),
           _p(context,
               'Email, nome e cognome, telefono (opzionale), foto caricate per gli ordini, '

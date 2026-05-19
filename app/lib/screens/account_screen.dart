@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../i18n/translations.dart';
+import '../services/messaging_service.dart';
 import '../state/auth_state.dart';
 import '../state/cart_state.dart';
 import '../state/orders_state.dart';
@@ -180,8 +181,12 @@ class AccountScreen extends StatelessWidget {
             _Tile(
               icon: Icons.support_agent_outlined,
               title: 'Contatta il negozio',
-              subtitle: '+39 081 830 6365',
-              onTap: () {},
+              subtitle: '+39 347 826 0320 (WhatsApp)',
+              onTap: () => MessagingService.sendWhatsApp(
+                phone: '+393478260320',
+                message:
+                    'Ciao Silvestre Fotoservizi, ho bisogno di informazioni.',
+              ),
             ),
             const SizedBox(height: 22),
             OutlinedButton.icon(

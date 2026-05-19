@@ -173,7 +173,7 @@ class AboutScreen extends StatelessWidget {
                         icon: const Icon(Icons.call),
                         label: const Text('Chiama'),
                         onPressed: () =>
-                            MessagingService.callPhone('+390818306365'),
+                            MessagingService.callPhone('+393478260320'),
                       ),
                     ),
                     const SizedBox(width: 10),
