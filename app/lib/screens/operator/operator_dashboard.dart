@@ -24,10 +24,6 @@ class OperatorDashboard extends StatelessWidget {
 
         final today = all.where((o) =>
             o.createdAt.isAfter(startOfDay) && o.createdAt.isBefore(endOfDay));
-        final pending = all.where((o) =>
-            o.status == OrderStatus.submitted ||
-            o.status == OrderStatus.inProduction);
-        final ready = all.where((o) => o.status == OrderStatus.readyForPickup);
         final lateHours = settingsState.settings.lateOrderHours;
         final lateThreshold = now.subtract(Duration(hours: lateHours));
         final late = all.where((o) =>
@@ -80,47 +76,41 @@ class OperatorDashboard extends StatelessWidget {
             // Responsive: 4 cards/row se larghezza >= 900 (PC/tablet landscape),
             // 2 cards/row altrimenti (mobile/finestra stretta).
             LayoutBuilder(builder: (ctx, c) {
-              final wide = c.maxWidth >= 900;
+              final w = c.maxWidth;
+              // Responsive: piu cards per riga su schermi piu larghi
+              final cols = w >= 1100
+                  ? 4
+                  : w >= 700
+                      ? 3
+                      : 2;
               return GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: wide ? 4 : 2,
+                crossAxisCount: cols,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: wide ? 1.0 : 1.05,
+                childAspectRatio: cols == 4 ? 1.1 : (cols == 3 ? 1.15 : 1.05),
                 children: [
-                  _StatCard(
-                    label: 'Da Fare',
-                    value: '${pending.length}',
-                    sub: 'Qui ci sono tutti gli ordini ricevuti e in lavorazione',
-                    icon: Icons.pending_actions,
-                    color: const Color(0xFFD32F2F),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const OperatorHistoryScreen(
-                                initialFilter: OrderStatus.submitted,
-                              )),
+                  for (final s in OrderStatus.values)
+                    _StatCard(
+                      label: s.label,
+                      value:
+                          '${all.where((o) => o.status == s).length}',
+                      sub: _subFor(s),
+                      icon: s.icon,
+                      color: _colorFor(s),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => OperatorHistoryScreen(
+                                  initialFilter: s,
+                                )),
+                      ),
                     ),
-                  ),
-                  _StatCard(
-                    label: 'Da Ritirare',
-                    value: '${ready.length}',
-                    sub: 'Qui ci sono tutti gli ordini pronti in negozio e ritirati',
-                    icon: Icons.local_mall,
-                    color: const Color(0xFF2E7D32),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const OperatorHistoryScreen(
-                                initialFilter: OrderStatus.readyForPickup,
-                              )),
-                    ),
-                  ),
                   _StatCard(
                     label: 'Storico',
                     value: '${ordersState.orders.length}',
-                    sub: 'Qui c\'è la lista completa di tutti gli ordini (passati e correnti) con ricerca e filtri',
+                    sub: 'Lista completa di tutti gli ordini con ricerca e filtri',
                     icon: Icons.history,
                     color: const Color(0xFF1976D2),
                     onTap: () => Navigator.push(
@@ -217,6 +207,35 @@ class _AlertBanner extends StatelessWidget {
     );
   }
 }
+
+/// Sub-testo descrittivo per ciascuno stato
+String _subFor(OrderStatus s) => switch (s) {
+      OrderStatus.quoteRequested =>
+          'Richieste di lavoro personalizzato in attesa di preventivo',
+      OrderStatus.quoted =>
+          'Preventivi inviati, in attesa che il cliente accetti e paghi',
+      OrderStatus.submitted =>
+          'Ordini ricevuti, da avviare in lavorazione',
+      OrderStatus.inProduction =>
+          'Ordini in lavorazione',
+      OrderStatus.readyForPickup =>
+          'Ordini pronti da ritirare in negozio',
+      OrderStatus.pickedUp =>
+          'Ordini ritirati e completati',
+      OrderStatus.cancelled =>
+          'Ordini annullati',
+    };
+
+/// Colore dedicato per ciascuno stato
+Color _colorFor(OrderStatus s) => switch (s) {
+      OrderStatus.quoteRequested => const Color(0xFF9C27B0), // viola
+      OrderStatus.quoted => const Color(0xFFEAB300), // giallo/ambra
+      OrderStatus.submitted => const Color(0xFFF47521), // arancione Silvestre
+      OrderStatus.inProduction => const Color(0xFFD32F2F), // rosso
+      OrderStatus.readyForPickup => const Color(0xFF2E7D32), // verde
+      OrderStatus.pickedUp => const Color(0xFF607D8B), // blu-grigio
+      OrderStatus.cancelled => const Color(0xFF424242), // grigio scuro
+    };
 
 class _StatCard extends StatelessWidget {
   final String label;
