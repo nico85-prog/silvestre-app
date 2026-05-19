@@ -319,11 +319,104 @@ class _CartScreenState extends State<CartScreen> {
                       onPressed: _submitOrder,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  // PULSANTE TEST: bypassa pagamento. Rimuovere prima del lancio reale.
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.science_outlined),
+                      label: const Text('Invia ordine TEST (bypass pagamento)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E8B57),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _submitTestOrder,
+                    ),
+                  ),
                 ],
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Bypass pagamento/caparra: invia ordine direttamente come "submitted".
+  /// Usato solo in fase di test. Da rimuovere prima del lancio reale.
+  Future<void> _submitTestOrder() async {
+    final user = authState.currentUser;
+    if (user == null) return;
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: CircularProgressIndicator(color: palette.primary),
+      ),
+    );
+    String pickupCode;
+    try {
+      pickupCode = await ordersState.submitOrder(
+        userId: user.id,
+        items: cartState.items,
+        customerNote: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
+        customerName: user.displayName,
+        customerPhone: user.phone,
+        payment: const PaymentResult(
+          method: PaymentMethod.inStore,
+          paidNow: false,
+          transactionId: 'TEST_BYPASS',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore invio ordine: $e')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context); // chiudo loader
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Ordine TEST inviato'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Modalità test: nessun pagamento processato. Codice ritiro:'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E8B57).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(pickupCode,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    letterSpacing: 1.2,
+                  )),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              cartState.clear();
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
