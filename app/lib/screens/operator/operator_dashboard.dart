@@ -233,7 +233,7 @@ class _StatCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Ink(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: palette.surface,
           borderRadius: BorderRadius.circular(14),
@@ -245,37 +245,42 @@ class _StatCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 18),
+                  child: Icon(icon, color: color, size: 22),
                 ),
                 const Spacer(),
-                Text(
-                  label,
-                  style: TextStyle(
-                      fontSize: 11, color: palette.textSecondary),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: palette.textSecondary),
+                  ),
                 ),
                 if (onTap != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 2),
+                    padding: const EdgeInsets.only(left: 4),
                     child: Icon(Icons.chevron_right,
-                        size: 14, color: palette.textSecondary),
+                        size: 18, color: palette.textSecondary),
                   ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 10),
             Text(value,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: palette.textPrimary,
                 )),
             Text(sub,
-                style:
-                    TextStyle(fontSize: 11, color: palette.textSecondary)),
+                style: TextStyle(
+                    fontSize: 13, color: palette.textSecondary)),
           ],
         ),
       ),
