@@ -11,9 +11,9 @@ class StoreSettings {
     this.messageTemplates = const {
       'submitted': 'Ciao {{name}}, abbiamo ricevuto il tuo ordine {{code}}. Ti aggiorniamo non appena è pronto.',
       'inProduction': 'Ciao {{name}}, stiamo lavorando al tuo ordine {{code}}.',
-      'ready': 'Ciao {{name}}, il tuo ordine {{code}} è pronto per il ritiro! Ti aspettiamo a Frattamaggiore.',
-      'pickedUp': 'Ciao {{name}}, grazie per essere passato! A presto.',
-      'cancelled': 'Ciao {{name}}, il tuo ordine {{code}} è stato annullato. Se hai dubbi contattaci.',
+      'ready': 'Ciao {{name}}, il tuo ordine {{code}} è pronto per il ritiro! Ti aspettiamo in Via Vittorio Emanuele III, 205 — 80027 Frattamaggiore (NA). Orari: Lun-Sab 09:00-13:00.',
+      'pickedUp': 'Ciao {{name}}, grazie per essere passato da Silvestre Fotoservizi! A presto.',
+      'cancelled': 'Ciao {{name}}, il tuo ordine {{code}} è stato annullato. Se hai dubbi contattaci al +39 081 830 6365.',
     },
     this.lateOrderHours = 48,
   });
