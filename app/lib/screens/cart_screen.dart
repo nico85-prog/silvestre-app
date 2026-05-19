@@ -314,9 +314,8 @@ class _CartScreenState extends State<CartScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.storefront),
-                      label:
-                          const Text('Invia ordine — Paga in negozio'),
+                      icon: const Icon(Icons.send),
+                      label: const Text('Invia ordine'),
                       onPressed: _submitOrder,
                     ),
                   ),
