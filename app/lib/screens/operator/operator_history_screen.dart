@@ -156,29 +156,7 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
                 ],
               ),
             ),
-            SizedBox(
-              height: 52,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                children: [
-                  _FilterChip(
-                    label: 'Tutti',
-                    selected: effectiveFilter == null,
-                    onTap: () => setState(() => _filterStatus = null),
-                    color: palette.primary,
-                  ),
-                  for (final s in OrderStatus.values)
-                    _FilterChip(
-                      label: s.label,
-                      selected: effectiveFilter == s,
-                      onTap: () => setState(() => _filterStatus = s),
-                      color: s.colorOn(context),
-                    ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
             // Header riepilogo
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -238,48 +216,6 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
 
 String _fmtDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color color;
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color:
-                selected ? color.withValues(alpha: 0.2) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-                color: selected ? color : color.withValues(alpha: 0.5),
-                width: selected ? 2 : 1),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _HistoryTile extends StatelessWidget {
   final CustomerOrder order;
