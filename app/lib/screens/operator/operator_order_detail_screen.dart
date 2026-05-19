@@ -628,88 +628,54 @@ class _QuoteFormState extends State<_QuoteForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _sending = true);
     final amount = double.tryParse(_amount.text.replaceAll(',', '.')) ?? 0;
+
+    // 1) Build message ORA (prima di qualsiasi await) per preservare il
+    //    contesto di user-gesture necessario a Chrome per launchUrl.
+    final code = widget.order.pickupCode;
+    final name = widget.order.customerName ?? 'cliente';
+    final title = widget.order.customRequestTitle ?? '';
+    final desc = widget.order.customRequestDescription ?? '';
+    final noteText = _note.text.trim();
+    final etaText = _eta.text.trim();
+    final phone = widget.order.customerPhone ?? '';
+    final message = settingsState.renderTemplate(
+      'quoted',
+      name: name,
+      code: code,
+      title: title,
+      description: desc,
+      amount: amount.toStringAsFixed(2),
+      eta: etaText,
+      note: noteText.isEmpty ? '' : '- Nota: $noteText\n',
+    );
+
+    // 2) Lancia WhatsApp SUBITO (fire-and-forget) — stesso pattern di
+    //    _changeStatusAndNotify ma in ordine inverso per evitare che
+    //    il rebuild post-sendQuote distrugga il widget prima del launch.
+    if (phone.isNotEmpty && message.trim().isNotEmpty) {
+      MessagingService.sendWhatsApp(phone: phone, message: message);
+    }
+
+    // 3) Salva preventivo in Firestore. Anche se rebuilda l'UI e distrugge
+    //    il form, WhatsApp è già stato lanciato sopra.
     try {
       await ordersState.sendQuote(
         orderId: widget.order.id,
         amount: amount,
-        eta: _eta.text.trim(),
-        operatorNote: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        eta: etaText,
+        operatorNote: noteText.isEmpty ? null : noteText,
       );
-      if (!mounted) return;
-      // Auto-apre WhatsApp col messaggio preventivo costruito dal template
-      // configurabile in Impostazioni → Template messaggi cliente → 'quoted'.
-      final code = widget.order.pickupCode;
-      final name = widget.order.customerName ?? 'cliente';
-      final title = widget.order.customRequestTitle ?? '';
-      final desc = widget.order.customRequestDescription ?? '';
-      final note = _note.text.trim();
-      final message = settingsState.renderTemplate(
-        'quoted',
-        name: name,
-        code: code,
-        title: title,
-        description: desc,
-        amount: amount.toStringAsFixed(2),
-        eta: _eta.text.trim(),
-        note: note.isEmpty ? '' : '- Nota: $note\n',
-      );
-      final phone = widget.order.customerPhone ?? '';
-      bool waOpened = false;
-      if (phone.isNotEmpty) {
-        try {
-          waOpened = await MessagingService.sendWhatsApp(
-              phone: phone, message: message);
-        } catch (e) {
-          debugPrint('WhatsApp launch error: $e');
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Preventivo inviato. Codice: $code')),
+        );
       }
-      if (!mounted) return;
-      // Mostra dialog con il codice + bottone manuale per riaprire WhatsApp
-      // in caso il launch automatico non sia riuscito (PWA --app mode etc.).
-      showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          icon: Icon(Icons.chat,
-              color: const Color(0xFF25D366), size: 40),
-          title: const Text('Preventivo salvato'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Codice ordine: $code',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              Text(waOpened
-                  ? 'WhatsApp aperto col messaggio pre-compilato. Premi Invia in WhatsApp.'
-                  : phone.isEmpty
-                      ? 'ATTENZIONE: il cliente non ha un numero di telefono. Contattalo manualmente.'
-                      : 'WhatsApp non si è aperto automaticamente. Premi il bottone qui sotto per aprirlo.'),
-            ],
-          ),
-          actions: [
-            if (phone.isNotEmpty)
-              ElevatedButton.icon(
-                icon: const Icon(Icons.chat),
-                label: const Text('Apri WhatsApp'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366),
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => MessagingService.sendWhatsApp(
-                    phone: phone, message: message),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Chiudi'),
-            ),
-          ],
-        ),
-      );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore salvataggio: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
