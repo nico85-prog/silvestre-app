@@ -46,6 +46,33 @@ class _OperatorScaffoldState extends State<OperatorScaffold> {
     settingsState.load();
     operatorsState.watch();
     operatorNavState.addListener(_onNavChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showWaReminder());
+  }
+
+  void _showWaReminder() {
+    if (!mounted) return;
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        icon: Icon(Icons.warning_amber_rounded,
+            color: palette.warning, size: 48),
+        title: const Text('APRI WHATSAPP BUSINESS'),
+        content: const Text(
+          'I messaggi di stato dell\'ordine (in lavorazione, pronto, ritirato) '
+          'partono solo se WhatsApp Business è aperto e raggiungibile sul telefono.\n\n'
+          'Apri ora WhatsApp Business e tienilo attivo durante il turno.',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Ho capito'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
