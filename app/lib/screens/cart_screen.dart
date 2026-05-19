@@ -347,6 +347,32 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _submitTestOrder() async {
     final user = authState.currentUser;
     if (user == null) return;
+    // CONFIRM: evita tap accidentale del bottone test in produzione
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: Color(0xFFD32F2F), size: 40),
+        title: const Text('MODALITÀ TEST'),
+        content: const Text(
+            'Stai per inviare un ordine SENZA PAGAMENTO.\n\n'
+            'L\'ordine sarà marcato come "TEST_BYPASS" in DB.\n\n'
+            'Procedere?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annulla')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E8B57),
+                foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sì, invia TEST'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
     showDialog(
       context: context,
@@ -360,9 +386,7 @@ class _CartScreenState extends State<CartScreen> {
       pickupCode = await ordersState.submitOrder(
         userId: user.id,
         items: cartState.items,
-        customerNote: _noteController.text.trim().isEmpty
-            ? null
-            : _noteController.text.trim(),
+        customerNote: '[TEST] ${_noteController.text.trim()}'.trim(),
         customerName: user.displayName,
         customerPhone: user.phone,
         payment: const PaymentResult(
@@ -371,6 +395,9 @@ class _CartScreenState extends State<CartScreen> {
           transactionId: 'TEST_BYPASS',
         ),
       );
+      // FIX 5 ANTICIPATO: cart cleared SUBITO dopo submit success,
+      // prima del dialog. Evita duplicati se dialog non si apre.
+      cartState.clear();
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
@@ -410,8 +437,7 @@ class _CartScreenState extends State<CartScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              cartState.clear();
-              Navigator.pop(context);
+              Navigator.pop(context); // cart già clear sopra
               Navigator.pop(context);
             },
             child: const Text('OK'),
@@ -459,6 +485,9 @@ class _CartScreenState extends State<CartScreen> {
         customerPhone: user.phone,
         payment: paymentResult,
       );
+      // FIX: clear cart SUBITO dopo submit success, prima del dialog.
+      // Evita duplicati se dialog fail to mount o context perso.
+      cartState.clear();
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // close loader
@@ -522,8 +551,7 @@ class _CartScreenState extends State<CartScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              cartState.clear();
-              Navigator.pop(context);
+              Navigator.pop(context); // cart già clear sopra
               Navigator.pop(context);
             },
             child: const Text('Ho capito'),

@@ -70,3 +70,6 @@ class PaymentResult {
 
 /// Percentuale caparra obbligatoria per "Paga in negozio".
 const double kDepositPercentage = 0.20;
+
+/// Caparra minima in euro (sotto questa soglia, Stripe rifiuta la transazione).
+const double kDepositMinAmount = 0.50;

@@ -29,8 +29,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  double get _depositAmount =>
-      double.parse((widget.total * kDepositPercentage).toStringAsFixed(2));
+  /// Caparra: 20% del totale, ma minimo kDepositMinAmount per evitare
+  /// transazioni sotto soglia che gli operatori carta rifiutano.
+  double get _depositAmount {
+    final raw = widget.total * kDepositPercentage;
+    final clamped = raw < kDepositMinAmount ? kDepositMinAmount : raw;
+    // Mai chiedere caparra maggiore del totale (per ordini molto piccoli)
+    final capped = clamped > widget.total ? widget.total : clamped;
+    return double.parse(capped.toStringAsFixed(2));
+  }
+
   double get _balanceAmount =>
       double.parse((widget.total - _depositAmount).toStringAsFixed(2));
 

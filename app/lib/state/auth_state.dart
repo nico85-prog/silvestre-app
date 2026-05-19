@@ -168,16 +168,34 @@ class AuthState extends ChangeNotifier {
     if (user == null) return;
     final uid = user.uid;
     try {
-      // Delete user doc + own orders
-      await _db.collection('users').doc(uid).delete();
+      // Cancellazione ATOMICA via WriteBatch: o tutto o niente.
+      // Evita ordini orfani se la sequenza fallisce a metà.
       final orders =
           await _db.collection('orders').where('userId', isEqualTo: uid).get();
-      for (final d in orders.docs) {
-        await d.reference.delete();
+      // Firestore batch supporta max 500 operazioni: per utenti con tanti
+      // ordini, splittiamo in più batch.
+      const batchLimit = 400;
+      for (int start = 0; start < orders.docs.length; start += batchLimit) {
+        final batch = _db.batch();
+        final end = (start + batchLimit < orders.docs.length)
+            ? start + batchLimit
+            : orders.docs.length;
+        for (int i = start; i < end; i++) {
+          batch.delete(orders.docs[i].reference);
+        }
+        // Sull'ultimo batch elimino anche il user doc
+        if (end == orders.docs.length) {
+          batch.delete(_db.collection('users').doc(uid));
+        }
+        await batch.commit();
       }
+      // Se non c'erano ordini, elimino comunque il user doc
+      if (orders.docs.isEmpty) {
+        await _db.collection('users').doc(uid).delete();
+      }
+      // Auth account come ultimo passo (richiede recent login)
       await user.delete();
     } on fb.FirebaseAuthException catch (e) {
-      // Requires recent login. Suggest re-login and retry.
       throw AuthException(
           'Riautenticati e riprova (sessione troppo vecchia per cancellare): ${e.message}');
     }

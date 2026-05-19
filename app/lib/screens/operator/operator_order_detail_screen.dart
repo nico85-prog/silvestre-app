@@ -637,7 +637,7 @@ class _QuoteFormState extends State<_QuoteForm> {
     final desc = widget.order.customRequestDescription ?? '';
     final noteText = _note.text.trim();
     final etaText = _eta.text.trim();
-    final phone = widget.order.customerPhone ?? '';
+    final phone = (widget.order.customerPhone ?? '').trim();
     final message = settingsState.renderTemplate(
       'quoted',
       name: name,
