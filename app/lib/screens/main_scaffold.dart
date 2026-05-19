@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../state/auth_state.dart';
-import '../state/cart_state.dart';
 import '../state/orders_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/cart_badge_button.dart';
 import '../widgets/theme_picker_sheet.dart';
 import '../widgets/notification_permission_banner.dart';
 import '../widgets/verification_banner.dart';
 import 'account_screen.dart';
-import 'cart_screen.dart';
 import 'home_screen.dart';
 import 'orders_screen.dart';
 
@@ -97,7 +96,7 @@ class _MainScaffoldState extends State<MainScaffold> {
             icon: const Icon(Icons.palette_outlined),
             onPressed: () => ThemePickerSheet.show(context),
           ),
-          _CartBadgeButton(palette: palette),
+          const CartBadgeButton(),
         ],
       ),
       body: Column(
@@ -125,57 +124,6 @@ class _MainScaffoldState extends State<MainScaffold> {
               label: 'Account'),
         ],
       ),
-    );
-  }
-}
-
-class _CartBadgeButton extends StatelessWidget {
-  final SilvestrePalette palette;
-  const _CartBadgeButton({required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: cartState,
-      builder: (context, _) {
-        final count = cartState.itemCount;
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.shopping_bag_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CartScreen()),
-              ),
-            ),
-            if (count > 0)
-              Positioned(
-                right: 4,
-                top: 4,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: palette.primary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  constraints:
-                      const BoxConstraints(minWidth: 18, minHeight: 18),
-                  child: Text(
-                    '$count',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
     );
   }
 }

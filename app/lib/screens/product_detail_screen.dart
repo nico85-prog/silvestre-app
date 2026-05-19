@@ -4,6 +4,7 @@ import '../models/photobook.dart';
 import '../models/product.dart';
 import '../state/cart_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/cart_badge_button.dart';
 import '../widgets/catalog_image.dart';
 import '../widgets/photo_picker_section.dart';
 import 'photobook/photobook_editor_screen.dart';
@@ -56,7 +57,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final lineTotal = unitPrice * _quantity;
 
     return Scaffold(
-      appBar: AppBar(title: Text(product.name)),
+      appBar: AppBar(
+        title: Text(product.name),
+        actions: const [CartBadgeButton()],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
