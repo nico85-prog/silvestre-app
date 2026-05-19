@@ -5,9 +5,7 @@ import '../../state/operators_state.dart';
 import '../../state/orders_state.dart';
 import '../../state/settings_state.dart';
 import '../../theme/app_theme.dart';
-import 'operator_calendar_screen.dart';
 import 'operator_dashboard.dart';
-import 'operator_history_screen.dart';
 import 'operator_settings_screen.dart';
 
 class OperatorScaffold extends StatefulWidget {
@@ -20,8 +18,6 @@ class OperatorScaffold extends StatefulWidget {
 class _OperatorScaffoldState extends State<OperatorScaffold> {
   final _tabs = const [
     OperatorDashboard(),
-    OperatorHistoryScreen(),
-    OperatorCalendarScreen(),
     OperatorSettingsScreen(),
   ];
 
@@ -187,14 +183,6 @@ class _OperatorScaffoldState extends State<OperatorScaffold> {
               icon: Icon(Icons.dashboard_outlined),
               selectedIcon: Icon(Icons.dashboard),
               label: 'Dashboard'),
-          NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history),
-              label: 'Storico'),
-          NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined),
-              selectedIcon: Icon(Icons.calendar_month),
-              label: 'Calendario'),
           NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),

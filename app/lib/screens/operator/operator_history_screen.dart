@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/order.dart';
-import '../../state/operator_nav_state.dart';
 import '../../state/orders_state.dart';
 import '../../theme/app_theme.dart';
 import 'operator_order_detail_screen.dart';
@@ -8,7 +7,15 @@ import 'operator_order_detail_screen.dart';
 /// Storico completo di TUTTI gli ordini (passati e correnti),
 /// sortato per data decrescente. Filtra per stato + cerca codice/nome/tel.
 class OperatorHistoryScreen extends StatefulWidget {
-  const OperatorHistoryScreen({super.key});
+  /// Filtro stato iniziale (es. quando aperto da una card della dashboard).
+  final OrderStatus? initialFilter;
+  final bool initialTodayOnly;
+
+  const OperatorHistoryScreen({
+    super.key,
+    this.initialFilter,
+    this.initialTodayOnly = false,
+  });
 
   @override
   State<OperatorHistoryScreen> createState() => _OperatorHistoryScreenState();
@@ -19,6 +26,13 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
   OrderStatus? _filterStatus;
   DateTime? _from;
   DateTime? _to;
+  late final bool _todayOnly = widget.initialTodayOnly;
+
+  @override
+  void initState() {
+    super.initState();
+    _filterStatus = widget.initialFilter;
+  }
 
   Future<void> _pickFromDate() async {
     final d = await showDatePicker(
@@ -44,14 +58,12 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
 
-    return AnimatedBuilder(
-      animation: Listenable.merge([ordersState, operatorNavState]),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Storico ordini')),
+      body: AnimatedBuilder(
+      animation: ordersState,
       builder: (context, _) {
-        // Filtro proveniente dalla dashboard (tap su stat card)
-        final navFilter = operatorNavState.ordersFilter;
-        final navTodayOnly = operatorNavState.ordersTodayOnly;
-        // Filtro effettivo: nav (se settato) altrimenti locale
-        final effectiveFilter = navFilter ?? _filterStatus;
+        final effectiveFilter = _filterStatus;
 
         // Ordini tutti, sortati per data decrescente
         var orders = List<CustomerOrder>.from(ordersState.orders);
@@ -62,7 +74,7 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
           orders =
               orders.where((o) => o.status == effectiveFilter).toList();
         }
-        if (navTodayOnly) {
+        if (_todayOnly) {
           final now = DateTime.now();
           final start = DateTime(now.year, now.month, now.day);
           final end = start.add(const Duration(days: 1));
@@ -154,20 +166,14 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
                   _FilterChip(
                     label: 'Tutti',
                     selected: effectiveFilter == null,
-                    onTap: () {
-                      operatorNavState.clearFilter();
-                      setState(() => _filterStatus = null);
-                    },
+                    onTap: () => setState(() => _filterStatus = null),
                     color: palette.primary,
                   ),
                   for (final s in OrderStatus.values)
                     _FilterChip(
                       label: s.label,
                       selected: effectiveFilter == s,
-                      onTap: () {
-                        operatorNavState.clearFilter();
-                        setState(() => _filterStatus = s);
-                      },
+                      onTap: () => setState(() => _filterStatus = s),
                       color: s.colorOn(context),
                     ),
                 ],
@@ -225,6 +231,7 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
           ],
         );
       },
+      ),
     );
   }
 }

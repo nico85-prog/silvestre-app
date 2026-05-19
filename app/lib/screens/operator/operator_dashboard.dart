@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/order.dart';
-import '../../state/operator_nav_state.dart';
 import '../../state/orders_state.dart';
 import '../../state/settings_state.dart';
 import '../../theme/app_theme.dart';
+import 'operator_history_screen.dart';
 import 'operator_order_detail_screen.dart';
 
 class OperatorDashboard extends StatelessWidget {
@@ -21,11 +21,9 @@ class OperatorDashboard extends StatelessWidget {
         final now = DateTime.now();
         final startOfDay = DateTime(now.year, now.month, now.day);
         final endOfDay = startOfDay.add(const Duration(days: 1));
-        final weekAgo = startOfDay.subtract(const Duration(days: 6));
 
         final today = all.where((o) =>
             o.createdAt.isAfter(startOfDay) && o.createdAt.isBefore(endOfDay));
-        final week = all.where((o) => o.createdAt.isAfter(weekAgo));
         final pending = all.where((o) =>
             o.status == OrderStatus.submitted ||
             o.status == OrderStatus.inProduction);
@@ -38,7 +36,6 @@ class OperatorDashboard extends StatelessWidget {
         final dailyLimit = settingsState.settings.dailyOrderLimit;
         final todayCount = today.length;
         final limitReached = todayCount >= dailyLimit;
-        final weekRevenue = week.fold<double>(0, (s, o) => s + o.total);
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -98,8 +95,13 @@ class OperatorDashboard extends StatelessWidget {
                     sub: 'Qui ci sono tutti gli ordini ricevuti e in lavorazione',
                     icon: Icons.pending_actions,
                     color: const Color(0xFFD32F2F),
-                    onTap: () => operatorNavState.goToOrders(
-                        filter: OrderStatus.submitted),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const OperatorHistoryScreen(
+                                initialFilter: OrderStatus.submitted,
+                              )),
+                    ),
                   ),
                   _StatCard(
                     label: 'Da Ritirare',
@@ -107,25 +109,25 @@ class OperatorDashboard extends StatelessWidget {
                     sub: 'Qui ci sono tutti gli ordini pronti in negozio e ritirati',
                     icon: Icons.local_mall,
                     color: const Color(0xFF2E7D32),
-                    onTap: () => operatorNavState.goToOrders(
-                        filter: OrderStatus.readyForPickup),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const OperatorHistoryScreen(
+                                initialFilter: OrderStatus.readyForPickup,
+                              )),
+                    ),
                   ),
                   _StatCard(
-                    label: 'Ordini di Oggi',
-                    value: '$todayCount',
-                    sub: 'Qui ci sono tutti gli ordini ricevuti oggi (su $dailyLimit max)',
-                    icon: Icons.today,
-                    color: const Color(0xFFF47521),
-                    onTap: () =>
-                        operatorNavState.goToOrders(todayOnly: true),
-                  ),
-                  _StatCard(
-                    label: 'Ultimi 7 gg',
-                    value: '€ ${weekRevenue.toStringAsFixed(0)}',
-                    sub: 'Ricavo degli ordini degli ultimi 7 giorni (${week.length} ordini)',
-                    icon: Icons.trending_up,
+                    label: 'Storico',
+                    value: '${ordersState.orders.length}',
+                    sub: 'Qui c\'è la lista completa di tutti gli ordini (passati e correnti) con ricerca e filtri',
+                    icon: Icons.history,
                     color: const Color(0xFF1976D2),
-                    onTap: () => operatorNavState.goToOrders(),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const OperatorHistoryScreen()),
+                    ),
                   ),
                 ],
               );

@@ -636,19 +636,38 @@ class _QuoteFormState extends State<_QuoteForm> {
         operatorNote: _note.text.trim().isEmpty ? null : _note.text.trim(),
       );
       if (!mounted) return;
-      // Auto-apre WhatsApp col messaggio preventivo che include il codice unico
+      // Auto-apre WhatsApp col messaggio preventivo che include:
+      //   - titolo + descrizione della richiesta cliente
+      //   - importo, tempi
+      //   - codice univoco ordine
+      //   - eventuale nota operatore
+      //   - istruzioni per accettare nell'app
       final code = widget.order.pickupCode;
       final name = widget.order.customerName ?? 'cliente';
-      final note = _note.text.trim().isEmpty
-          ? ''
-          : '\nNota: ${_note.text.trim()}';
-      final message =
-          'Ciao $name, ecco il preventivo per la tua richiesta:\n\n'
-          'IMPORTO: € ${amount.toStringAsFixed(2)}\n'
-          'TEMPI: ${_eta.text.trim()}\n'
-          'CODICE ORDINE: $code$note\n\n'
-          'Per confermare apri l\'app Silvestre Fotoservizi → Lavoro Personalizzato → '
-          '"Ho già un codice preventivo" → inserisci $code → paga.';
+      final title = widget.order.customRequestTitle ?? '';
+      final desc = widget.order.customRequestDescription ?? '';
+      final note = _note.text.trim();
+
+      final buf = StringBuffer();
+      buf.write('Ciao $name,\n');
+      buf.write('ecco il preventivo per la tua richiesta');
+      if (title.isNotEmpty) buf.write(' "$title"');
+      buf.write(':\n\n');
+      if (desc.isNotEmpty) {
+        buf.write('La tua richiesta:\n$desc\n\n');
+      }
+      buf.write('PREVENTIVO:\n');
+      buf.write('- Importo: € ${amount.toStringAsFixed(2)}\n');
+      buf.write('- Tempi: ${_eta.text.trim()}\n');
+      buf.write('- Codice ordine: $code\n');
+      if (note.isNotEmpty) {
+        buf.write('- Nota: $note\n');
+      }
+      buf.write('\nPer confermare apri l\'app Silvestre Fotoservizi → '
+          'Lavoro Personalizzato → "Ho già un codice preventivo" → '
+          'inserisci $code → paga.\n\n');
+      buf.write('Silvestre Fotoservizi · Frattamaggiore (NA)');
+      final message = buf.toString();
       final phone = widget.order.customerPhone ?? '';
       if (phone.isNotEmpty) {
         await MessagingService.sendWhatsApp(phone: phone, message: message);
