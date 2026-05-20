@@ -4,6 +4,7 @@ import '../../state/promotions_state.dart';
 import '../../theme/app_theme.dart';
 import 'new_promotion_screen.dart';
 import 'promotion_tabs/tab_logica_gdpr.dart';
+import 'promotion_tabs/tab_tutti.dart';
 import 'promotion_tabs/tab_acconsentiti.dart';
 import 'promotion_tabs/tab_nuovi.dart';
 import 'promotion_tabs/tab_in_attesa.dart';
@@ -28,7 +29,7 @@ class OperatorPromotionScreen extends StatefulWidget {
 class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController =
-      TabController(length: 5, vsync: this);
+      TabController(length: 6, vsync: this);
 
   @override
   void initState() {
@@ -58,6 +59,7 @@ class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
           indicatorColor: palette.primary,
           tabs: const [
             Tab(icon: Icon(Icons.gavel), text: 'Logica & GDPR'),
+            Tab(text: '👥 Tutti'),
             Tab(text: '🟢 Acconsentiti'),
             Tab(text: '⚪ Nuovi'),
             Tab(text: '🟡 In attesa'),
@@ -69,6 +71,7 @@ class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
         controller: _tabController,
         children: [
           PromoTabLogicaGdpr(palette: palette),
+          PromoTabTutti(palette: palette),
           PromoTabAcconsentiti(palette: palette),
           PromoTabNuovi(palette: palette),
           PromoTabInAttesa(palette: palette),
