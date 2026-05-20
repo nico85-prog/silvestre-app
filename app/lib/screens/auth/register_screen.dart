@@ -216,16 +216,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                   ),
-                  _ConsentTile(
-                    value: _acceptMarketing,
-                    onChanged: (v) =>
-                        setState(() => _acceptMarketing = v ?? false),
-                    titleBuilder: (palette) => Text(
-                      'Voglio ricevere offerte e novità via email '
-                      '(opzionale, puoi disattivarlo quando vuoi).',
-                      style: TextStyle(color: palette.textPrimary),
-                    ),
-                  ),
+                  // Vuota — la box marketing evidenziata è fuori dal blocco
+                  // _ConsentBlock per dargli più visibilità
                   _ConsentTile(
                     value: _acceptPortfolio,
                     onChanged: (v) =>
@@ -237,6 +229,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ]),
+                const SizedBox(height: 14),
+                _MarketingHighlightBox(
+                  value: _acceptMarketing,
+                  onChanged: (v) =>
+                      setState(() => _acceptMarketing = v ?? false),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loading ? null : _submit,
@@ -290,6 +288,139 @@ class _ConsentBlock extends StatelessWidget {
         border: Border.all(color: palette.border),
       ),
       child: Column(children: children),
+    );
+  }
+}
+
+/// Box marketing evidenziata, separata dai consensi tecnici per dargli
+/// visibilità e invogliare l'utente a opt-in (rispettando il GDPR:
+/// default OFF, opzionale, app funziona senza).
+class _MarketingHighlightBox extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  const _MarketingHighlightBox({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    final accent = palette.primary; // arancione Silvestre
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: value
+              ? accent.withValues(alpha: 0.16)
+              : accent.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: value ? accent : accent.withValues(alpha: 0.35),
+            width: value ? 2 : 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.card_giftcard,
+                      color: accent, size: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'RESTA AGGIORNATO SULLE PROMOZIONI',
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: value,
+                  onChanged: onChanged,
+                  activeColor: accent,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      'Sì, voglio ricevere offerte esclusive, sconti e '
+                      'novità via WhatsApp ed email',
+                      style: TextStyle(
+                        color: palette.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _benefit(palette, accent, 'Sconti fino al -40% sulle stampe'),
+                  _benefit(palette, accent, 'Anteprima nuovi prodotti'),
+                  _benefit(palette, accent,
+                      'Promo lampo riservate ai clienti app'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Opzionale — puoi disiscriverti quando vuoi dalle '
+              'Impostazioni dell\'account.',
+              style: TextStyle(
+                fontSize: 11,
+                color: palette.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _benefit(SilvestrePalette palette, Color accent, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle, color: accent, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(
+                    color: palette.textPrimary,
+                    fontSize: 13,
+                    height: 1.3)),
+          ),
+        ],
+      ),
     );
   }
 }
