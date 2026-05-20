@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
+import '../../../services/messaging_service.dart';
 import '../../../state/marketing_contacts_state.dart';
 import '../../../theme/app_theme.dart';
+
+/// Template fisso del messaggio soft opt-in.
+String _buildSoftOptInMessage(String fullName) {
+  final firstName = fullName.split(' ').first;
+  return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi 📸. '
+      'Hai usato i nostri servizi in passato e vorremmo restare in '
+      'contatto via WhatsApp con sconti riservati e novità.\n\n'
+      'Rispondi SI per iscriverti, oppure ignora questo messaggio '
+      'per uscire dalla lista.\n\n'
+      'In qualunque momento puoi disiscriverti rispondendo STOP.';
+}
 
 /// Tab 👥 Tutti — vista d'insieme di tutti i contatti del sistema con
 /// badge di stato e filtri rapidi. Utile per ricerca globale e audit.
@@ -206,6 +218,50 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
         _ => palette.textSecondary,
       };
 
+  Widget _row(SilvestrePalette palette, MarketingContact c) {
+    final status = _statusOf(c);
+    return _ContactActionRow(
+      contact: c,
+      palette: palette,
+      status: status,
+      emoji: _emojiOf(status),
+      label: _labelOf(status),
+      bgColor: _bgColorOf(status, palette),
+      borderColor: _borderColorOf(status, palette),
+      statusColor: _statusColorOf(status, palette),
+    );
+  }
+}
+
+/// Riga con badge stato + bottoni di azione contestuali allo stato.
+class _ContactActionRow extends StatefulWidget {
+  final MarketingContact contact;
+  final SilvestrePalette palette;
+  final String status;
+  final String emoji;
+  final String label;
+  final Color bgColor;
+  final Color borderColor;
+  final Color statusColor;
+
+  const _ContactActionRow({
+    required this.contact,
+    required this.palette,
+    required this.status,
+    required this.emoji,
+    required this.label,
+    required this.bgColor,
+    required this.borderColor,
+    required this.statusColor,
+  });
+
+  @override
+  State<_ContactActionRow> createState() => _ContactActionRowState();
+}
+
+class _ContactActionRowState extends State<_ContactActionRow> {
+  bool _busy = false;
+
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/'
       '${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -217,35 +273,241 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
     return '${n}gg fa';
   }
 
-  Widget _row(SilvestrePalette palette, MarketingContact c) {
-    final status = _statusOf(c);
-    final emoji = _emojiOf(status);
-    final label = _labelOf(status);
-    final isFromCsv = c.source.startsWith('csv');
-    final statusColor = _statusColorOf(status, palette);
+  /// Click "OPT IN": apre WhatsApp col template + marca optInSent.
+  Future<void> _optIn() async {
+    setState(() => _busy = true);
+    final c = widget.contact;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await MessagingService.sendWhatsApp(
+        phone: c.phone,
+        message: _buildSoftOptInMessage(c.name),
+      );
+      await marketingContactsState.markOptInSent(c.id);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Errore: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
-    // Costruisco eventuale info contestuale (data invio / rifiuto)
+  Future<void> _markYes() async {
+    setState(() => _busy = true);
+    try {
+      await marketingContactsState.markOptInYes(widget.contact.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _askReasonAndReject() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Marca ${widget.contact.name} come Rifiutato'),
+        content: const Text(
+          'Indica il motivo. Questo determina se il contatto sara\' '
+          'resettabile in futuro.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(ctx, RejectionReason.manualOperator),
+            style: TextButton.styleFrom(
+                foregroundColor: widget.palette.warning),
+            child: const Text('NO generico (riprovabile)'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, RejectionReason.stop),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.palette.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('STOP esplicito'),
+          ),
+        ],
+      ),
+    );
+    if (reason == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await marketingContactsState.markOptInNo(widget.contact.id,
+          reason: reason);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Errore: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmReset() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.warning_amber_rounded,
+            color: widget.palette.error, size: 32),
+        title: const Text('⚠ Reset GDPR'),
+        content: Text(
+          'Riportare ${widget.contact.name} da 🔴 Rifiutato a ⚪ Nuovo? '
+          'Procedi solo se il rifiuto era per scadenza 30gg senza '
+          'risposta, NON per uno STOP esplicito.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.palette.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Riporta in ⚪ Nuovi'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await marketingContactsState.resetToNuovo(widget.contact.id);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Errore: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _actions() {
+    if (_busy) {
+      return const SizedBox(
+        width: 18, height: 18,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    switch (widget.status) {
+      case 'new':
+        return ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF25D366),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10, vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          icon: const Icon(Icons.chat, size: 14),
+          onPressed: _optIn,
+          label: const Text('OPT IN',
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w800)),
+        );
+      case 'awaiting':
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: 'SI ricevuto',
+              icon: const Icon(Icons.check_circle, size: 22),
+              color: const Color(0xFF2E7D32),
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: _markYes,
+            ),
+            IconButton(
+              tooltip: 'STOP / NO',
+              icon: const Icon(Icons.cancel, size: 22),
+              color: widget.palette.error,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: _askReasonAndReject,
+            ),
+          ],
+        );
+      case 'no':
+        if (RejectionReason.isResettable(widget.contact.rejectionReason)) {
+          return IconButton(
+            tooltip: 'Riporta in ⚪ Nuovi',
+            icon: const Icon(Icons.restart_alt, size: 22),
+            color: widget.palette.warning,
+            padding: EdgeInsets.zero,
+            constraints:
+                const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: _confirmReset,
+          );
+        }
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: widget.palette.error.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: widget.palette.error),
+          ),
+          child: Tooltip(
+            message:
+                'Reset non autorizzato dal cliente (vincolo GDPR)',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock, size: 11, color: widget.palette.error),
+                const SizedBox(width: 2),
+                Text('NO RESET',
+                    style: TextStyle(
+                        color: widget.palette.error,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 8.5,
+                        letterSpacing: 0.3)),
+              ],
+            ),
+          ),
+        );
+      default:
+        // 🟢 yes → no action
+        return const SizedBox.shrink();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.contact;
+    final isFromCsv = c.source.startsWith('csv');
     String? contextInfo;
-    if (status == 'awaiting' && c.optInSentAt != null) {
+    if (widget.status == 'awaiting' && c.optInSentAt != null) {
       contextInfo = 'soft opt-in inviato ${_daysAgo(c.optInSentAt!)}';
-    } else if (status == 'no' && c.optInRepliedAt != null) {
-      contextInfo = 'rifiutato il ${_fmtDate(c.optInRepliedAt!)}';
-    } else if (status == 'yes' && c.optInRepliedAt != null) {
+    } else if (widget.status == 'no' && c.optInRepliedAt != null) {
+      contextInfo =
+          'rifiutato il ${_fmtDate(c.optInRepliedAt!)} · '
+          '${RejectionReason.label(c.rejectionReason)}';
+    } else if (widget.status == 'yes' && c.optInRepliedAt != null) {
       contextInfo = 'acconsentito il ${_fmtDate(c.optInRepliedAt!)}';
-    } else if (status == 'new') {
+    } else if (widget.status == 'new') {
       contextInfo = 'mai contattato';
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: _bgColorOf(status, palette),
+        color: widget.bgColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderColorOf(status, palette)),
+        border: Border.all(color: widget.borderColor),
       ),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
+          Text(widget.emoji, style: const TextStyle(fontSize: 18)),
           const SizedBox(width: 8),
           Text(isFromCsv ? '📇' : '📱',
               style: const TextStyle(fontSize: 14)),
@@ -262,19 +524,20 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
                           style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: palette.textPrimary)),
+                              color: widget.palette.textPrimary)),
                     ),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.15),
+                        color: widget.statusColor
+                            .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(label.toUpperCase(),
+                      child: Text(widget.label.toUpperCase(),
                           style: TextStyle(
-                              color: statusColor,
+                              color: widget.statusColor,
                               fontWeight: FontWeight.w800,
                               fontSize: 9,
                               letterSpacing: 0.5)),
@@ -284,26 +547,28 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
                 Text(c.phone,
                     style: TextStyle(
                         fontSize: 11,
-                        color: palette.textSecondary,
+                        color: widget.palette.textSecondary,
                         fontFamily: 'Consolas')),
                 if (c.email.isNotEmpty)
                   Text(c.email,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           fontSize: 11,
-                          color: palette.textSecondary)),
+                          color: widget.palette.textSecondary)),
                 if (contextInfo != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(contextInfo,
                         style: TextStyle(
                             fontSize: 10,
-                            color: statusColor,
+                            color: widget.statusColor,
                             fontStyle: FontStyle.italic)),
                   ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          _actions(),
         ],
       ),
     );

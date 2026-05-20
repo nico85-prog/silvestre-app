@@ -47,61 +47,69 @@ class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Crea Promozione'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-              ),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text(
-                'NUOVA PROMOZIONE',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const NewPromotionScreen(),
+    return AnimatedBuilder(
+      animation: marketingContactsState,
+      builder: (context, _) {
+        final s = marketingContactsState;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Crea Promozione'),
+            actions: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text(
+                    'NUOVA PROMOZIONE',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NewPromotionScreen(),
+                    ),
+                  ),
                 ),
               ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelColor: palette.primary,
+              unselectedLabelColor: palette.textSecondary,
+              indicatorColor: palette.primary,
+              tabs: [
+                const Tab(
+                    icon: Icon(Icons.gavel), text: 'Logica & GDPR'),
+                Tab(text: '👥 Tutti (${s.totalCount})'),
+                Tab(text: '🟢 Acconsentiti (${s.optedInCount})'),
+                Tab(text: '⚪ Nuovi (${s.newCount})'),
+                Tab(text: '🟡 In attesa (${s.awaitingCount})'),
+                Tab(text: '🔴 Rifiutati (${s.rejectedCount})'),
+              ],
             ),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          labelColor: palette.primary,
-          unselectedLabelColor: palette.textSecondary,
-          indicatorColor: palette.primary,
-          tabs: const [
-            Tab(icon: Icon(Icons.gavel), text: 'Logica & GDPR'),
-            Tab(text: '👥 Tutti'),
-            Tab(text: '🟢 Acconsentiti'),
-            Tab(text: '⚪ Nuovi'),
-            Tab(text: '🟡 In attesa'),
-            Tab(text: '🔴 Rifiutati'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          PromoTabLogicaGdpr(palette: palette),
-          PromoTabTutti(palette: palette),
-          PromoTabAcconsentiti(palette: palette),
-          PromoTabNuovi(palette: palette),
-          PromoTabInAttesa(palette: palette),
-          PromoTabRifiutati(palette: palette),
-        ],
-      ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              PromoTabLogicaGdpr(palette: palette),
+              PromoTabTutti(palette: palette),
+              PromoTabAcconsentiti(palette: palette),
+              PromoTabNuovi(palette: palette),
+              PromoTabInAttesa(palette: palette),
+              PromoTabRifiutati(palette: palette),
+            ],
+          ),
+        );
+      },
     );
   }
 }
