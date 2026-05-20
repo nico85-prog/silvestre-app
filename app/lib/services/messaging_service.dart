@@ -36,17 +36,24 @@ class MessagingService {
       // Numero non valido — non lanciare URL rotto
       return false;
     }
-    // Usa api.whatsapp.com (più robusto su browser/PWA rispetto a wa.me)
-    final url = Uri.parse(
-        'https://api.whatsapp.com/send?phone=$p&text=${Uri.encodeComponent(message)}');
+    final encoded = Uri.encodeComponent(message);
+
+    // 1° tentativo: scheme nativo whatsapp:// — passa direttamente al
+    // protocol handler dell'OS (WhatsApp Business desktop su Windows/Mac/Linux,
+    // WhatsApp app su mobile). NON apre la pagina api.whatsapp.com nel
+    // browser → niente tab fantasma residua.
+    final nativeUrl = Uri.parse('whatsapp://send?phone=$p&text=$encoded');
     try {
-      final ok = await launchUrl(url,
-          mode: LaunchMode.externalApplication,
-          webOnlyWindowName: '_blank');
+      final ok = await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
       if (ok) return true;
     } catch (_) {}
-    return launchUrl(url,
-        mode: LaunchMode.platformDefault, webOnlyWindowName: '_blank');
+
+    // Fallback: pagina HTTPS api.whatsapp.com per ambienti senza app installata
+    // (es. browser desktop senza WhatsApp Desktop / WhatsApp Business).
+    final webUrl = Uri.parse(
+        'https://api.whatsapp.com/send?phone=$p&text=$encoded');
+    return launchUrl(webUrl,
+        mode: LaunchMode.externalApplication, webOnlyWindowName: '_blank');
   }
 
   static Future<bool> sendSms({
