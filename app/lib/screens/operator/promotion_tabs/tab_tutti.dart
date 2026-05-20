@@ -452,31 +452,47 @@ class _ContactActionRowState extends State<_ContactActionRow> {
             onPressed: _confirmReset,
           );
         }
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: widget.palette.error.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: widget.palette.error),
-          ),
-          child: Tooltip(
-            message:
-                'Reset non autorizzato dal cliente (vincolo GDPR)',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lock, size: 14, color: widget.palette.error),
-                const SizedBox(width: 4),
-                Text('NO RESET',
-                    style: TextStyle(
-                        color: widget.palette.error,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        letterSpacing: 0.4)),
-              ],
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: widget.palette.error.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: widget.palette.error),
+              ),
+              child: Tooltip(
+                message:
+                    'Reset non autorizzato dal cliente (vincolo GDPR)',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock, size: 14,
+                        color: widget.palette.error),
+                    const SizedBox(width: 4),
+                    Text('NO RESET',
+                        style: TextStyle(
+                            color: widget.palette.error,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                            letterSpacing: 0.4)),
+                  ],
+                ),
+              ),
             ),
-          ),
+            // TEMP DEBUG: bypass GDPR lock per testing (rimuovere in prod)
+            IconButton(
+              tooltip: 'TEMP: forza reset a ⚪ Nuovo (DEBUG, rimuovere in prod)',
+              icon: const Icon(Icons.restart_alt, size: 22),
+              color: widget.palette.warning,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: _confirmReset,
+            ),
+          ],
         );
       case 'yes':
         // TEMP: bottone reset per debugging. Rimuovere in produzione.
