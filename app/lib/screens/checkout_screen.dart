@@ -69,6 +69,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           builder: (_) => _StripeCardSheet(total: widget.total, palette: palette),
         );
         break;
+      case PaymentMethod.satispay:
+        result = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _SatispaySheet(total: widget.total, palette: palette),
+        );
+        break;
     }
 
     if (result != null && mounted) {
@@ -188,6 +196,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         PaymentMethod.inStore =>
             'Versa caparra € ${_depositAmount.toStringAsFixed(2)} e conferma',
         PaymentMethod.card => 'Paga € ${widget.total.toStringAsFixed(2)} con carta',
+        PaymentMethod.satispay =>
+            'Paga € ${widget.total.toStringAsFixed(2)} con Satispay',
       };
 }
 
@@ -205,11 +215,13 @@ class _MethodTile extends StatelessWidget {
 
   IconData get _icon => switch (method) {
         PaymentMethod.card => Icons.credit_card,
+        PaymentMethod.satispay => Icons.smartphone,
         PaymentMethod.inStore => Icons.storefront_outlined,
       };
 
   Color get _accent => switch (method) {
-        PaymentMethod.card => const Color(0xFF1B6BFF), // SumUp blue
+        PaymentMethod.card => const Color(0xFF635BFF), // Stripe purple
+        PaymentMethod.satispay => const Color(0xFFEB4F2A), // Satispay orange
         PaymentMethod.inStore => palette.primary,
       };
 
@@ -461,6 +473,177 @@ class _StripeCardSheetState extends State<_StripeCardSheet> {
   }
 }
 
+/// Demo Satispay sheet showing QR + "Ho pagato" button.
+class _SatispaySheet extends StatefulWidget {
+  final double total;
+  final SilvestrePalette palette;
+  const _SatispaySheet({required this.total, required this.palette});
+
+  @override
+  State<_SatispaySheet> createState() => _SatispaySheetState();
+}
+
+class _SatispaySheetState extends State<_SatispaySheet> {
+  bool _processing = false;
+
+  Future<void> _confirm() async {
+    setState(() => _processing = true);
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    Navigator.pop(
+      context,
+      PaymentResult(
+        method: PaymentMethod.satispay,
+        transactionId: 'demo_sps_${DateTime.now().millisecondsSinceEpoch}',
+        paidNow: true,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      decoration: BoxDecoration(
+        color: widget.palette.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.smartphone, color: Color(0xFFEB4F2A)),
+              const SizedBox(width: 8),
+              Text('Paga con Satispay',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: widget.palette.textPrimary,
+                  )),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: widget.palette.warning.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('DEMO',
+                    style: TextStyle(
+                      color: widget.palette.warning,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                    )),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: widget.palette.border, width: 2),
+            ),
+            child: CustomPaint(
+              painter: _FakeQrPainter(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '€ ${widget.total.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: widget.palette.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Apri Satispay → Scansiona QR',
+            style: TextStyle(color: widget.palette.textSecondary),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEB4F2A),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _processing ? null : _confirm,
+              child: _processing
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Ho completato il pagamento',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FakeQrPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.black;
+    final cell = size.width / 21;
+    // Fake QR pattern with checker
+    final pattern = [
+      '111111101010111111100',
+      '100000101101100000100',
+      '101110100110101110100',
+      '101110101110101110100',
+      '101110100000101110100',
+      '100000101110100000100',
+      '111111101010111111100',
+      '000000000110000000000',
+      '110101110011101110100',
+      '011010100110110100110',
+      '101110101010101010101',
+      '011011100110100101110',
+      '110100110011101100100',
+      '000000000110010110110',
+      '111111100110110101010',
+      '100000101011010110101',
+      '101110101101111100100',
+      '101110100110100010110',
+      '101110101010111110100',
+      '100000100110100100010',
+      '111111100110110110110',
+    ];
+    for (int r = 0; r < 21; r++) {
+      for (int c = 0; c < 21; c++) {
+        if (pattern[r][c] == '1') {
+          canvas.drawRect(
+            Rect.fromLTWH(c * cell + 4, r * cell + 4, cell - 1, cell - 1),
+            paint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _DepositSheet extends StatefulWidget {
   final double depositAmount;
   final double balanceAmount;
@@ -478,15 +661,28 @@ class _DepositSheet extends StatefulWidget {
 }
 
 class _DepositSheetState extends State<_DepositSheet> {
+  PaymentMethod _depositVia = PaymentMethod.card;
+
   Future<void> _payDeposit() async {
+    PaymentResult? subResult;
     final palette = widget.palette;
-    final subResult = await showModalBottomSheet<PaymentResult>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) =>
-          _StripeCardSheet(total: widget.depositAmount, palette: palette),
-    );
+    if (_depositVia == PaymentMethod.card) {
+      subResult = await showModalBottomSheet<PaymentResult>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) =>
+            _StripeCardSheet(total: widget.depositAmount, palette: palette),
+      );
+    } else {
+      subResult = await showModalBottomSheet<PaymentResult>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) =>
+            _SatispaySheet(total: widget.depositAmount, palette: palette),
+      );
+    }
     if (subResult == null) return;
     if (!mounted) return;
     Navigator.pop(
@@ -495,7 +691,7 @@ class _DepositSheetState extends State<_DepositSheet> {
         method: PaymentMethod.inStore,
         paidNow: false,
         depositAmount: widget.depositAmount,
-        depositMethod: PaymentMethod.card,
+        depositMethod: _depositVia,
         depositTransactionId: subResult.transactionId,
         lastFour: subResult.lastFour,
       ),
@@ -561,13 +757,30 @@ class _DepositSheetState extends State<_DepositSheet> {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+          Text("Come paghi la caparra?",
+              style: TextStyle(
+                  fontWeight: FontWeight.w700, color: palette.textPrimary)),
+          const SizedBox(height: 8),
+          _DepositMethodTile(
+            method: PaymentMethod.card,
+            selected: _depositVia == PaymentMethod.card,
+            onTap: () => setState(() => _depositVia = PaymentMethod.card),
+            palette: palette,
+          ),
+          _DepositMethodTile(
+            method: PaymentMethod.satispay,
+            selected: _depositVia == PaymentMethod.satispay,
+            onTap: () => setState(() => _depositVia = PaymentMethod.satispay),
+            palette: palette,
+          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.credit_card),
+              icon: const Icon(Icons.lock),
               label: Text(
-                  "Versa EUR ${widget.depositAmount.toStringAsFixed(2)} con carta"),
+                  "Versa EUR ${widget.depositAmount.toStringAsFixed(2)} di caparra"),
               onPressed: _payDeposit,
             ),
           ),
@@ -604,3 +817,61 @@ class _DepositSheetState extends State<_DepositSheet> {
   }
 }
 
+class _DepositMethodTile extends StatelessWidget {
+  final PaymentMethod method;
+  final bool selected;
+  final VoidCallback onTap;
+  final SilvestrePalette palette;
+  const _DepositMethodTile({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+    required this.palette,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = method == PaymentMethod.card
+        ? const Color(0xFF635BFF)
+        : const Color(0xFFEB4F2A);
+    final icon = method == PaymentMethod.card
+        ? Icons.credit_card
+        : Icons.smartphone;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color:
+                selected ? accent.withValues(alpha: 0.08) : palette.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: selected ? accent : palette.border,
+                width: selected ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(method.label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: palette.textPrimary,
+                    )),
+              ),
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: selected ? accent : palette.textSecondary,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

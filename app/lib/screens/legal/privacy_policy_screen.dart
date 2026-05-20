@@ -77,7 +77,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           _p(context,
               'I tuoi dati sono trattati internamente. Possono essere condivisi con: '
               'Google/Firebase (hosting, autenticazione, storage), provider di pagamento '
-              '(SumUp) se scegli il pagamento online. Tutti hanno DPA conformi '
+              '(Stripe, Satispay) se scegli il pagamento online. Tutti hanno DPA conformi '
               'al GDPR.'),
           _h(context, 'Trasferimento extra-UE'),
           _p(context,
