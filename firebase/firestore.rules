@@ -94,14 +94,22 @@ service cloud.firestore {
     }
 
     // ---- marketing_contacts ----
-    // Contatti CSV storici importati una tantum via script admin (REST API).
-    // Solo operatore/admin può leggere (per pannello Crea Promozione).
-    // I clienti normali NON possono mai vedere questa lista, neanche con
-    // APK reverse-engineered. Scrittura solo via Admin SDK (script o
-    // Cloud Function): qui la blocchiamo dal client.
+    // Contatti CSV storici + sync auto da app users registrati.
+    //
+    // READ: solo staff/admin → niente cliente vede mai la lista.
+    //
+    // WRITE da cliente:
+    //   - SOLO il proprio record (linkedUserId == request.auth.uid)
+    //   - Necessario per sync automatica register/updateProfile
+    //   - Un cliente non puo' creare/aggiornare record altrui perche'
+    //     dovrebbe falsificare linkedUserId, ma la rule lo verifica
+    //
+    // WRITE da staff: tutto (markOptInYes/No, manual edit, ecc.)
     match /marketing_contacts/{contactId} {
       allow read: if isStaff();
-      allow write: if false;
+      allow create, update: if isSignedIn() &&
+        request.resource.data.linkedUserId == request.auth.uid;
+      allow write: if isStaff();
     }
   }
 }

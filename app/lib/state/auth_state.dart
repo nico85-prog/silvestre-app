@@ -89,6 +89,9 @@ class AuthState extends ChangeNotifier {
           .collection('users')
           .doc(user.id)
           .set(user.toFirestore());
+      // Sync con marketing_contacts (CSV unificato lato pannello operatore).
+      // Best-effort: se fallisce non blocca la registrazione.
+      _syncMarketingContact(user).catchError((_) {});
       // Send verification email (silent fail if rate-limited)
       cred.user!.sendEmailVerification().catchError((_) {});
       _currentUser = user;
@@ -96,6 +99,49 @@ class AuthState extends ChangeNotifier {
     } on fb.FirebaseAuthException catch (e) {
       throw AuthException(_messageFor(e));
     }
+  }
+
+  /// Normalizza il telefono per usarlo come docId di marketing_contacts.
+  /// Stesso pattern di MessagingService.normalizePhoneForWhatsApp ma
+  /// senza il `+` (Firestore docId non lo accetta nei path).
+  String? _normalizePhoneForContactId(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    var n = s.replaceAll(RegExp(r'[^0-9]'), '');
+    if (n.startsWith('00')) n = n.substring(2);
+    if (n.length >= 9 && n.length <= 11 && n.startsWith('3') &&
+        !n.startsWith('39')) {
+      n = '39$n';
+    }
+    if (n.length < 8) return null;
+    return n;
+  }
+
+  /// Scrive (crea o aggiorna) il documento `marketing_contacts/{phone}`
+  /// con lo stato consenso corrente dell'utente.
+  ///
+  /// Se l'utente NON spunta marketing → optInStatus='no' permanente
+  ///   (la sua scelta esplicita vince sullo stato CSV precedente).
+  /// Se spunta marketing → optInStatus='yes'.
+  ///
+  /// Idempotente via SetOptions(merge:true), così non sovrascrive
+  /// campi non gestiti (es. optInSentAt da future campagne soft opt-in).
+  Future<void> _syncMarketingContact(AppUser user) async {
+    final phone = _normalizePhoneForContactId(user.phone);
+    if (phone == null) return; // niente telefono, niente sync
+    final status = user.acceptedMarketing ? 'yes' : 'no';
+    final today = DateTime.now().toIso8601String().split('T').first;
+    await _db.collection('marketing_contacts').doc(phone).set({
+      'name': user.displayName,
+      'phone': '+$phone',
+      'email': user.email,
+      'optInStatus': status,
+      'linkedUserId': user.id,
+      'source': 'app_register_$today',
+      // optInRepliedAt = scelta esplicita appena espressa
+      'optInRepliedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   /// Send a password reset email to [email].
@@ -159,6 +205,11 @@ class AuthState extends ChangeNotifier {
         .collection('users')
         .doc(updated.id)
         .set(updated.toFirestore(), SetOptions(merge: true));
+    // Se cambia il consenso marketing OPPURE il telefono → sync
+    // marketing_contacts con nuova scelta. Best-effort.
+    if (acceptMarketing != null || phone != null) {
+      _syncMarketingContact(updated).catchError((_) {});
+    }
     _currentUser = updated;
     notifyListeners();
   }
