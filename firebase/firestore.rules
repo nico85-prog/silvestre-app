@@ -93,6 +93,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- promotions ----
+    // Campagne promozionali create dall'operatore (titolo, dettagli, canale,
+    // recipientIds, sentIds progress). Read/write solo staff.
+    match /promotions/{promoId} {
+      allow read, write: if isStaff();
+    }
+
     // ---- marketing_contacts ----
     // Contatti CSV storici + sync auto da app users registrati.
     //

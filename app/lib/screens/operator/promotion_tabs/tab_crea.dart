@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../state/auth_state.dart';
 import '../../../state/marketing_contacts_state.dart';
+import '../../../state/promotions_state.dart';
 import '../../../theme/app_theme.dart';
+import '../whatsapp_batch_screen.dart';
 
 /// Tab 2 — Crea Promozione (form + invio).
 /// PLACEHOLDER: scaffold con tutti i campi visibili. La logica di invio
@@ -96,14 +99,75 @@ class PromoTabCrea extends StatelessWidget {
         ],
       ),
     );
-    if (result == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Invio via $channel a $n contatti: implementazione in arrivo '
-            '(prossima fase).',
+    if (result != true || !context.mounted) return;
+
+    // Dispatch per canale
+    if (channel == 'WhatsApp') {
+      await _startWhatsAppBatch(context);
+    } else if (channel == 'Push App') {
+      _showSetupRequired(context, 'Push App (FCM)',
+          'Per attivare le push notification serve:\n\n'
+          '1. Attivare il piano Firebase Blaze (pay-as-you-go, ~0€/mese sotto soglia)\n'
+          '2. Deploy della Cloud Function che invia push agli utenti app opted-in\n\n'
+          'Quando vuoi attivarlo, chiedimi di configurare la Cloud Function.');
+    }
+  }
+
+  void _showSetupRequired(
+      BuildContext context, String channel, String body) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Configura $channel'),
+        content: Text(body),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Ho capito'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startWhatsAppBatch(BuildContext context) async {
+    final user = authState.currentUser;
+    if (user == null) return;
+    final recipients = marketingContactsState.contacts
+        .where((c) => c.isOptedIn)
+        .map((c) => c.id)
+        .where((id) => !excludedFromCampaign.contains(id))
+        .toList();
+    if (recipients.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nessun destinatario selezionato.'),
         ),
+      );
+      return;
+    }
+    try {
+      final id = await promotionsState.createWhatsAppCampaign(
+        title: titleController.text.trim(),
+        details: detailsController.text.trim(),
+        cost: costController.text.trim(),
+        validFrom: validFrom,
+        validTo: validTo,
+        photoUrls: photoUrls,
+        recipientIds: recipients,
+        operatorUid: user.id,
+      );
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WhatsAppBatchScreen(promotionId: id),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore: $e')),
       );
     }
   }
@@ -249,29 +313,20 @@ class PromoTabCrea extends StatelessWidget {
             const SizedBox(height: 8),
             _sendButton(
               context,
-              icon: Icons.notifications_active,
-              label: 'Push App (FCM)',
-              color: const Color(0xFF1976D2),
-              subtitle: 'Istantaneo, gratis, raggiunge solo utenti app',
-              channel: 'Push App',
-            ),
-            const SizedBox(height: 8),
-            _sendButton(
-              context,
-              icon: Icons.email,
-              label: 'Email',
-              color: const Color(0xFF9C27B0),
-              subtitle: 'Solo a chi ha email + acceptedMarketing=true',
-              channel: 'Email',
-            ),
-            const SizedBox(height: 8),
-            _sendButton(
-              context,
               icon: Icons.chat,
               label: 'WhatsApp (manual batch)',
               color: const Color(0xFF25D366),
               subtitle: '50-100/giorno, 1 click invio per contatto',
               channel: 'WhatsApp',
+            ),
+            const SizedBox(height: 8),
+            _sendButton(
+              context,
+              icon: Icons.notifications_active,
+              label: 'Push App (FCM)',
+              color: const Color(0xFF1976D2),
+              subtitle: 'Istantaneo, gratis, raggiunge solo utenti app',
+              channel: 'Push App',
             ),
             const SizedBox(height: 24),
           ],

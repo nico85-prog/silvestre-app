@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../state/marketing_contacts_state.dart';
+import '../../state/promotions_state.dart';
 import '../../theme/app_theme.dart';
 import 'promotion_tabs/tab_logica_gdpr.dart';
 import 'promotion_tabs/tab_crea.dart';
@@ -40,6 +41,7 @@ class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
   void initState() {
     super.initState();
     marketingContactsState.watchAll();
+    promotionsState.watchAll();
   }
 
   @override
