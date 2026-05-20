@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../state/auth_state.dart';
+import '../../state/marketing_optin_intent.dart';
 import '../../theme/app_theme.dart';
 import '../legal/privacy_policy_screen.dart';
 import '../legal/terms_screen.dart';
@@ -22,7 +23,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _loading = false;
   bool _obscure = true;
   bool _acceptTos = false;
-  bool _acceptMarketing = false;
+  // Se l'utente è arrivato qui via QR negozio (?optin=marketing), pre-spuntiamo
+  // il consenso marketing per fluidità. Default OFF altrimenti (GDPR).
+  late bool _acceptMarketing = MarketingOptInIntent.peek();
   bool _acceptPortfolio = false;
 
   @override
@@ -56,6 +59,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         acceptMarketing: _acceptMarketing,
         acceptPortfolio: _acceptPortfolio,
       );
+      // Consume intent: registrazione fatta, l'opt-in è gia' applicato.
+      MarketingOptInIntent.consume();
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     } on AuthException catch (e) {

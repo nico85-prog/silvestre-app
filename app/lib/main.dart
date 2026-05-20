@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'i18n/translations.dart';
 import 'screens/auth_gate.dart';
 import 'state/catalog_images_state.dart';
+import 'state/marketing_optin_intent.dart';
 import 'theme/app_theme.dart';
 
 final ValueNotifier<SilvestreThemeSpec> currentTheme =
@@ -17,6 +18,8 @@ void main() async {
   );
   // Carica cache immagini catalogo Pexels (Firestore) all'avvio
   catalogImagesState.load();
+  // Intercetta param ?optin=marketing dal QR negozio
+  MarketingOptInIntent.detectFromUrl();
   runApp(const SilvestreApp());
 }
 
