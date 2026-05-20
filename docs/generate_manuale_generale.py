@@ -195,7 +195,7 @@ p(doc, "Il \"cervello\" centrale dell'app. Fa 3 lavori:", bold=True)
 bul(doc, [
     "Auth: gestisce login/registrazione. Le password sono cifrate da Google, non da te.",
     "Firestore: il database. Ordini, profili, ruoli, impostazioni — tutto lì.",
-    "Cloud Functions: piccoli script automatici (es. \"manda push all'operatore quando arriva un nuovo ordine\").",
+    "Cloud Functions: piccoli script automatici. Sono FONDAMENTALI per: push notification reali (FCM) ai clienti app, cron job di pulizia automatica dei pending soft opt-in dopo 30 giorni, eventuali webhook (es. WhatsApp Cloud API se in futuro attivi l'invio automatizzato). Oggi non attivi: serve passare al piano Blaze. Vedi sezione 4 (TIER 2) e Appendice D per il setup.",
 ])
 p(doc, "Perché è importante:", bold=True)
 bul(doc, [
@@ -299,9 +299,9 @@ table(doc,
           ["1", "Foto reali dei prodotti", "Le foto attuali sono stock da Pexels: mostrano oggetti generici, non i tuoi reali. I clienti devono riconoscere il prodotto che ricevono, altrimenti il tasso di reso/lamentela sale.", "GRATIS", "1 gg"],
           ["1", "Verifica descrizioni e prezzi catalogo", "Eventuali errori di battitura o prezzi sbagliati ti fanno perdere soldi o credibilità. Una revisione finale prima del lancio è obbligatoria.", "GRATIS", "1 h"],
           ["1", "WhatsApp Business sul negozio", "Ad ogni cambio stato dell'ordine, l'app apre automaticamente WhatsApp con il numero del cliente e il messaggio pre-compilato — l'operatore preme solo Invia. Per professionalità conviene attivare WhatsApp Business sul numero del negozio invece del personale.", "GRATIS", "15 min"],
-          ["1", "Stripe LIVE (PIVA + chiavi)", "Senza Stripe LIVE i pagamenti con carta sono in modalità test: nessun soldo arriva sul tuo conto.", "~1.4% + 0,25\u20ac/tx", "1-2 gg"],
-          ["1", "Satispay Business LIVE", "Satispay è popolare in Italia, soprattutto sotto i 40 anni. Senza account LIVE perdi una fascia di clienti.", "~1.5%/tx", "7 gg"],
+          ["1", "Bonifico Istantaneo configurato", "Pagamento online a 0% commissioni: IBAN del negozio hardcoded in app (Banca Fideuram, Antonio Silvestre). Cliente paga dalla sua app bancaria, carica ricevuta, operatore conferma in app.", "GRATIS (0% fee)", "Fatto"],
           ["1", "Iubenda Privacy + Termini + Cookie GDPR", "Per legge, app che raccolgono email e dati personali DEVONO avere Privacy Policy e Cookie banner conformi GDPR.", "29-80\u20ac/anno", "30 min"],
+          ["2", "Cloud Functions Firebase (FONDAMENTALE)", "Senza Cloud Functions oggi sei bloccato su molte automazioni: push notification reali (FCM ai clienti app), cron job di pulizia automatica dei pending soft opt-in dopo 30gg, ricezione webhook per risposte WhatsApp Cloud API, e in futuro qualsiasi automazione server-side. Serve attivare il piano Blaze (pay-as-you-go) — in pratica resta gratis sotto soglia per un negozio piccolo (~0-5\u20ac/mese stimati). Senza Blaze tutto resta manual.", "Blaze: ~0-5\u20ac/mese", "2-3 h sviluppo"],
           ["2", "Aruba/FattureInCloud", "La normativa italiana richiede fatturazione elettronica oltre soglia.", "25-50\u20ac/anno", "1 h"],
           ["3", "Apple Developer", "Per pubblicare sull'App Store iPhone.", "99$/anno", "2 sett."],
           ["3", "Google Play Developer", "Per pubblicare sul Play Store Android.", "25$ una tantum", "3 sett."],
@@ -354,6 +354,6 @@ p(doc, f"Silvestre Fotoservizi \u00b7 {date.today().strftime('%d/%m/%Y')} \u00b7
   italic=True, color=GREY, size=10)
 
 import os
-out = os.path.join(os.path.dirname(__file__), "MANUALE_GENERALE_Silvestre.docx")
+out = os.path.join(os.path.dirname(__file__), "1_Manuale_Generale_Silvestre.docx")
 doc.save(out)
 print(f"OK: {out}")
