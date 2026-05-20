@@ -129,6 +129,12 @@ class CustomerOrder {
       (payment?['method'] as String?) ?? 'inStore';
   bool get isPaidOnline => (payment?['paidNow'] as bool?) ?? false;
 
+  /// True quando l'ordine è stato pagato via bonifico ma l'operatore non
+  /// ha ancora verificato sul conto. UI deve evidenziarlo come "da verificare".
+  bool get isPendingBankTransfer =>
+      paymentMethodKey == 'bankTransfer' &&
+      !((payment?['verified'] as bool?) ?? false);
+
   Map<String, dynamic> toFirestore() => {
         'userId': userId,
         'items': items.map((i) => i.toFirestore()).toList(),

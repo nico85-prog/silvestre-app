@@ -107,6 +107,16 @@ class OrdersState extends ChangeNotifier {
     await _db.collection('orders').doc(orderId).update(updates);
   }
 
+  /// Operatore conferma di aver verificato il bonifico istantaneo sul conto.
+  /// Aggiorna payment.verified=true e payment.paidNow=true così l'ordine
+  /// risulta pagato a tutti gli effetti.
+  Future<void> verifyBankTransfer(String orderId) async {
+    await _db.collection('orders').doc(orderId).update({
+      'payment.verified': true,
+      'payment.paidNow': true,
+    });
+  }
+
   /// Crea una richiesta di lavoro personalizzato (preventivo).
   /// L'ordine parte in stato quoteRequested e non ha items/total finché
   /// l'operatore non fa preventivo e cliente accetta.

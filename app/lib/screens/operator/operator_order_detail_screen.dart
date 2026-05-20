@@ -335,6 +335,11 @@ class OperatorOrderDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              // Bonifico Istantaneo: sezione di verifica per l'operatore.
+              if (live.paymentMethodKey == 'bankTransfer') ...[
+                const SizedBox(height: 20),
+                _BankTransferVerifySection(order: live, palette: palette),
+              ],
               if (live.customerNote != null && live.customerNote!.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 _Section(title: 'Nota del cliente', palette: palette),
@@ -367,6 +372,270 @@ class OperatorOrderDetailScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Sezione di verifica bonifico per l'operatore.
+/// Mostra dettagli del bonifico (causale, importo, ricevuta) + bottone
+/// "Conferma pagamento ricevuto" quando ancora da verificare.
+class _BankTransferVerifySection extends StatefulWidget {
+  final CustomerOrder order;
+  final SilvestrePalette palette;
+  const _BankTransferVerifySection({
+    required this.order,
+    required this.palette,
+  });
+
+  @override
+  State<_BankTransferVerifySection> createState() =>
+      _BankTransferVerifySectionState();
+}
+
+class _BankTransferVerifySectionState
+    extends State<_BankTransferVerifySection> {
+  bool _verifying = false;
+
+  Future<void> _verify() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Conferma pagamento ricevuto'),
+        content: Text(
+          'Hai verificato sul conto bancario di aver ricevuto il bonifico '
+          'di € ${widget.order.total.toStringAsFixed(2)} con causale '
+          '${widget.order.pickupCode}?\n\n'
+          'Confermando, l\'ordine passera\' a "pagato" e potra\' essere '
+          'lavorato.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('SI, ho ricevuto'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _verifying = true);
+    try {
+      await ordersState.verifyBankTransfer(widget.order.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Bonifico segnato come ricevuto e verificato.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _verifying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    final order = widget.order;
+    final verified = (order.payment?['verified'] as bool?) ?? false;
+    final proofUrl = order.payment?['proofUrl'] as String?;
+    final accent = const Color(0xFF2E7D32);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: verified
+            ? accent.withValues(alpha: 0.08)
+            : palette.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: verified ? accent : palette.warning,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                verified ? Icons.verified : Icons.account_balance,
+                color: verified ? accent : palette.warning,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                verified
+                    ? 'BONIFICO VERIFICATO'
+                    : 'BONIFICO ISTANTANEO — DA VERIFICARE',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: verified ? accent : palette.warning,
+                  fontSize: 13,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _kv(palette, 'Importo',
+              '€ ${order.total.toStringAsFixed(2)}', bold: true),
+          _kv(palette, 'Causale', order.pickupCode, monospace: true),
+          if (proofUrl != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'RICEVUTA CARICATA DAL CLIENTE',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: palette.textSecondary,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () => _openProofDialog(context, proofUrl),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  proofUrl,
+                  height: 180,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    height: 180,
+                    color: palette.border,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.broken_image),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tocca per ingrandire',
+              style: TextStyle(
+                  fontSize: 11, color: palette.textSecondary),
+            ),
+          ],
+          if (!verified) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: palette.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 16, color: palette.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Verifica sull\'app bancaria che il bonifico con causale '
+                      '"${order.pickupCode}" sia stato ricevuto, poi conferma '
+                      'qui sotto.',
+                      style: TextStyle(
+                          fontSize: 12, color: palette.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: _verifying
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle),
+                onPressed: _verifying ? null : _verify,
+                label: const Text(
+                  'Conferma pagamento ricevuto',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _kv(SilvestrePalette palette, String k, String v,
+      {bool bold = false, bool monospace = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(k,
+                style: TextStyle(
+                    color: palette.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ),
+          Expanded(
+            child: Text(v,
+                style: TextStyle(
+                  color: palette.textPrimary,
+                  fontFamily: monospace ? 'Consolas' : null,
+                  fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: bold ? 16 : 14,
+                  letterSpacing: monospace ? 0.5 : 0,
+                )),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openProofDialog(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              maxScale: 6,
+              child: Image.network(url, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -317,6 +317,28 @@ class _HistoryTile extends StatelessWidget {
                           ),
                         ),
                       ],
+                      if (order.isPendingBankTransfer) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32)
+                                .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                                color: const Color(0xFF2E7D32), width: 1),
+                          ),
+                          child: const Text(
+                            'bonifico da verificare',
+                            style: TextStyle(
+                              color: Color(0xFF2E7D32),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 2),
