@@ -133,6 +133,27 @@ class PromotionsState extends ChangeNotifier {
     return doc.id;
   }
 
+  /// Crea una campagna SOFT OPT-IN: template fisso (non modificabile),
+  /// destinatari = solo ⚪ Nuovi (optInStatus=pending AND optInSentAt=null).
+  /// Su ogni invio anche markOptInSent (lato marketingContactsState).
+  Future<String> createSoftOptInCampaign({
+    required List<String> recipientIds,
+    required String operatorUid,
+  }) async {
+    final doc = await _db.collection('promotions').add({
+      'title': 'Soft Opt-in',
+      'details': 'Richiesta consenso marketing',
+      'cost': '',
+      'channel': 'soft_optin',
+      'status': 'in_progress',
+      'recipientIds': recipientIds,
+      'sentIds': <String>[],
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': operatorUid,
+    });
+    return doc.id;
+  }
+
   /// Marca un contatto come inviato. Idempotente via arrayUnion.
   Future<void> markSent(String promotionId, String contactId) async {
     await _db.collection('promotions').doc(promotionId).update({

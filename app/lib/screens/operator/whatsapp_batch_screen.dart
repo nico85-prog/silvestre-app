@@ -22,9 +22,18 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
 
   /// Costruisce il messaggio dalla promo + nome destinatario.
   String _buildMessage(Promotion promo, MarketingContact contact) {
+    final firstName = contact.name.split(' ').first;
+    if (promo.channel == 'soft_optin') {
+      // Template FISSO non modificabile per il soft opt-in iniziale.
+      return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi 📸. '
+          'Hai usato i nostri servizi in passato e vorremmo restare in '
+          'contatto via WhatsApp con sconti riservati e novità.\n\n'
+          'Rispondi SI per iscriverti, oppure ignora questo messaggio '
+          'per uscire dalla lista.\n\n'
+          'In qualunque momento puoi disiscriverti rispondendo STOP.';
+    }
     final df = promo.validFrom != null ? _fmtDate(promo.validFrom!) : '____';
     final dt = promo.validTo != null ? _fmtDate(promo.validTo!) : '____';
-    final firstName = contact.name.split(' ').first;
     return '🎁 ${promo.title}\n\n'
         'Ciao $firstName,\n${promo.details}\n\n'
         '💰 ${promo.cost}\n'
@@ -61,12 +70,16 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
     setState(() => _markingSent = true);
     try {
       await promotionsState.markSent(promo.id, contactId);
+      // Soft opt-in: aggiorna anche optInSentAt sul contatto → passa
+      // automaticamente da ⚪ Nuovo a 🟡 In attesa.
+      if (promo.channel == 'soft_optin') {
+        await marketingContactsState.markOptInSent(contactId);
+      }
       // Se questo era l'ultimo, marca completata
       final updated = promotionsState.promotions.firstWhere(
         (p) => p.id == promo.id,
         orElse: () => promo,
       );
-      // Check pessimistico: se il count locale dice >= totale, completa
       if (updated.sentCount + 1 >= updated.totalCount) {
         await promotionsState.markCompleted(promo.id);
       }

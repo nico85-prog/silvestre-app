@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../state/auth_state.dart';
 import '../../../state/marketing_contacts_state.dart';
+import '../../../state/promotions_state.dart';
 import '../../../theme/app_theme.dart';
+import '../whatsapp_batch_screen.dart';
 
 /// Tab 1 — Logica & Conformità GDPR.
 /// Compliance-first: l'operatore atterra QUI per primo, vede le regole
@@ -48,9 +51,64 @@ class PromoTabLogicaGdpr extends StatelessWidget {
             const SizedBox(height: 24),
             _softOptInCta(context),
             const SizedBox(height: 24),
+            _inboxResponses(context),
+            const SizedBox(height: 24),
           ],
         );
       },
+    );
+  }
+
+  Widget _inboxResponses(BuildContext context) {
+    final awaiting = marketingContactsState.contacts
+        .where((c) => c.isAwaiting)
+        .toList()
+      ..sort((a, b) =>
+          (b.optInSentAt ?? DateTime(2000))
+              .compareTo(a.optInSentAt ?? DateTime(2000)));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _heading('Inbox risposte soft opt-in (🟡 In attesa)'),
+        const SizedBox(height: 6),
+        Text(
+          'Quando un cliente risponde "SI" o "STOP" su WhatsApp, '
+          'trovalo qui sotto e premi il bottone corrispondente.',
+          style: TextStyle(
+              fontSize: 12,
+              color: palette.textSecondary,
+              fontStyle: FontStyle.italic),
+        ),
+        const SizedBox(height: 10),
+        if (awaiting.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: palette.border),
+            ),
+            child: Center(
+              child: Text('Nessun contatto in attesa di risposta.',
+                  style: TextStyle(color: palette.textSecondary)),
+            ),
+          )
+        else
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 320),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const ClampingScrollPhysics(),
+              itemCount: awaiting.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 6),
+              itemBuilder: (context, i) {
+                final c = awaiting[i];
+                return _InboxRow(contact: c, palette: palette);
+              },
+            ),
+          ),
+      ],
     );
   }
 
@@ -278,20 +336,100 @@ class PromoTabLogicaGdpr extends StatelessWidget {
                 'LANCIA / RIPRENDI CAMPAGNA SOFT OPT-IN',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Workflow soft opt-in in arrivo nella prossima fase.',
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => _launchSoftOptIn(context),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _launchSoftOptIn(BuildContext context) async {
+    final user = authState.currentUser;
+    if (user == null) return;
+
+    // Check campagna soft opt-in gia' in corso → resume
+    final inProgress = promotionsState.promotions.where((p) =>
+        p.channel == 'soft_optin' && p.status == 'in_progress').toList();
+    if (inProgress.isNotEmpty) {
+      final p = inProgress.first;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WhatsAppBatchScreen(promotionId: p.id),
+        ),
+      );
+      return;
+    }
+
+    // Recipients: SOLO ⚪ Nuovi (mai contattati)
+    final recipients = marketingContactsState.contacts
+        .where((c) => c.isNew)
+        .map((c) => c.id)
+        .toList();
+    if (recipients.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nessun cliente ⚪ Nuovo da contattare. Tutti i pending sono '
+            'già stati contattati o hanno risposto.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Lancia campagna soft opt-in'),
+        content: Text(
+          'Stai per iniziare la campagna di richiesta consenso a '
+          '${recipients.length} clienti ⚪ Nuovi.\n\n'
+          'Per ogni contatto:\n'
+          '1. L\'app apre WhatsApp con messaggio FISSO precompilato\n'
+          '2. Tu premi Invia su WhatsApp\n'
+          '3. Torni in app e premi "Inviato, prossimo"\n\n'
+          'Consigliato 50-100/giorno. Puoi sempre interrompere e '
+          'riprendere il giorno dopo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('NO, INDIETRO'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.rocket_launch),
+            label: const Text('SÌ, LANCIA'),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+
+    try {
+      final id = await promotionsState.createSoftOptInCampaign(
+        recipientIds: recipients,
+        operatorUid: user.id,
+      );
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WhatsAppBatchScreen(promotionId: id),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore: $e')),
+      );
+    }
   }
 
   Widget _th(String text) => Padding(
@@ -329,4 +467,107 @@ class PromoTabLogicaGdpr extends StatelessWidget {
           ),
         ],
       );
+}
+
+class _InboxRow extends StatefulWidget {
+  final MarketingContact contact;
+  final SilvestrePalette palette;
+  const _InboxRow({required this.contact, required this.palette});
+
+  @override
+  State<_InboxRow> createState() => _InboxRowState();
+}
+
+class _InboxRowState extends State<_InboxRow> {
+  bool _busy = false;
+
+  Future<void> _act(Future<void> Function() action) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _daysAgo(DateTime? d) {
+    if (d == null) return '';
+    final n = DateTime.now().difference(d).inDays;
+    if (n == 0) return 'oggi';
+    if (n == 1) return '1 gg fa';
+    return '$n gg fa';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    final c = widget.contact;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          const Text('🟡', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: palette.textPrimary)),
+                Text(
+                    '${c.phone} · inviato ${_daysAgo(c.optInSentAt)}',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: palette.textSecondary,
+                        fontFamily: 'Consolas')),
+              ],
+            ),
+          ),
+          if (_busy)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else ...[
+            IconButton(
+              tooltip: 'SI ricevuto',
+              icon: const Icon(Icons.check_circle, size: 22),
+              color: const Color(0xFF2E7D32),
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: () => _act(
+                  () => marketingContactsState.markOptInYes(c.id)),
+            ),
+            IconButton(
+              tooltip: 'STOP ricevuto',
+              icon: const Icon(Icons.cancel, size: 22),
+              color: palette.error,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: () => _act(
+                  () => marketingContactsState.markOptInNo(c.id)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
