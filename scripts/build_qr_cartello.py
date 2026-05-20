@@ -4,7 +4,7 @@ Output:
   - docs/qr_cartello_A5.png  (formato A5 per stampa diretta)
   - docs/qr_only.png         (solo QR puro, per riusi)
 
-Il QR codifica https://silvestre-fotoservizi-it.web.app/?optin=marketing
+Il QR codifica https://silvestre-fotoservizi.web.app/?optin=marketing
 Quando un cliente lo scansiona, l'app/PWA Silvestre si apre e attiva
 automaticamente il consenso marketing (vedi task #43).
 """
@@ -13,7 +13,7 @@ import qrcode
 from PIL import Image, ImageDraw, ImageFont
 
 # ===== CONFIG =====
-APP_URL = "https://silvestre-fotoservizi-it.web.app/?optin=marketing"
+APP_URL = "https://silvestre-fotoservizi.web.app/?optin=marketing"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 SHOP_NAME = "SILVESTRE FOTOSERVIZI"
 ORANGE = (244, 117, 33)   # F47521

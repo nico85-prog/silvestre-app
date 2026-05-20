@@ -730,7 +730,7 @@ def main():
                   ["Numero WhatsApp Business negozio", "+39 335 169 7903"],
                   ["Email negozio", "fotosilvestre1970@gmail.com"],
                   ["Indirizzo negozio", "Via V. Emanuele III, 205 — Frattamaggiore (NA)"],
-                  ["Firebase project", "silvestre-fotoservizi-it"],
+                  ["Firebase project", "silvestre-fotoservizi"],
                   ["File CSV originale", "Desktop/SilvestreApp/Contatti_Clienti.csv"],
                   ["Provider pagamenti scelto", "Satispay (online) + Bonifico Istantaneo + Caparra in negozio"],
                   ["Provider email (gratis)", "Brevo (ex Sendinblue) — 300 email/giorno free tier"],
