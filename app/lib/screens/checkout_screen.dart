@@ -1142,13 +1142,13 @@ class _BankTransferSheetState extends State<_BankTransferSheet> {
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  disabledBackgroundColor: Colors.grey.shade400,
                 ),
-                onPressed: (_proofUrl == null || _confirming) ? null : _confirm,
-                child: _confirming
+                icon: _confirming
                     ? const SizedBox(
                         width: 22,
                         height: 22,
@@ -1157,12 +1157,30 @@ class _BankTransferSheetState extends State<_BankTransferSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Conferma ordine (in attesa verifica)',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white)),
+                    : const Icon(Icons.check_circle, color: Colors.white),
+                onPressed: (_proofUrl == null || _confirming) ? null : _confirm,
+                label: const Text('FATTO',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 1.2,
+                    )),
               ),
             ),
+            if (_proofUrl == null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Carica prima la ricevuta per abilitare il bottone',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: palette.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => Navigator.pop(context),
