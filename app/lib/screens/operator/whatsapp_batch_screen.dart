@@ -4,10 +4,16 @@ import '../../state/marketing_contacts_state.dart';
 import '../../state/promotions_state.dart';
 import '../../theme/app_theme.dart';
 
-/// Schermo dedicato all'invio WhatsApp manual batch.
-/// Per ogni contatto: 1) "Apri WhatsApp" → MessagingService apre WA pre-compilato,
-/// 2) operatore preme Invia in WA, 3) torna in app, 4) "✓ Inviato, prossimo".
-/// Stato persistito in Firestore (campo sentIds) → resume cross-sessione.
+/// Schermo lista per WhatsApp manual batch.
+/// L'operatore vede tutti i destinatari in una lista e per ognuno
+/// clicca "Apri WhatsApp" → si apre WA pre-compilato + il contatto
+/// viene marcato come inviato (sparisce dalla coda).
+///
+/// 2 modalita':
+///   - channel='soft_optin': recipients DINAMICI (current ⚪ Nuovi);
+///     un reset 🔴→⚪ rientra automaticamente nella coda.
+///   - channel='whatsapp' (promo standard): recipients da snapshot
+///     promotion.recipientIds (operator ha gia' deciso a chi mandare).
 class WhatsAppBatchScreen extends StatefulWidget {
   final String promotionId;
   const WhatsAppBatchScreen({super.key, required this.promotionId});
@@ -17,14 +23,11 @@ class WhatsAppBatchScreen extends StatefulWidget {
 }
 
 class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
-  bool _opening = false;
-  bool _markingSent = false;
+  final Set<String> _opening = {}; // contactIds in fase di click
 
-  /// Costruisce il messaggio dalla promo + nome destinatario.
   String _buildMessage(Promotion promo, MarketingContact contact) {
     final firstName = contact.name.split(' ').first;
     if (promo.channel == 'soft_optin') {
-      // Template FISSO non modificabile per il soft opt-in iniziale.
       return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi 📸. '
           'Hai usato i nostri servizi in passato e vorremmo restare in '
           'contatto via WhatsApp con sconti riservati e novità.\n\n'
@@ -47,50 +50,31 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
       '${d.day.toString().padLeft(2, '0')}/'
       '${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-  Future<void> _sendCurrent(Promotion promo, MarketingContact contact) async {
-    setState(() => _opening = true);
+  /// Click su Apri WhatsApp: marca come inviato + apre WA precompilato.
+  /// Per soft_optin: markOptInSent (passa a 🟡), poi markSent sulla promo.
+  /// Per promo standard: solo markSent sulla promo.
+  Future<void> _openAndMark(
+      Promotion promo, MarketingContact contact) async {
+    if (_opening.contains(contact.id)) return;
+    setState(() => _opening.add(contact.id));
     final message = _buildMessage(promo, contact);
-    final ok = await MessagingService.sendWhatsApp(
-      phone: contact.phone,
-      message: message,
-    );
-    if (!mounted) return;
-    setState(() => _opening = false);
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Impossibile aprire WhatsApp per ${contact.phone}'),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
-    }
-  }
-
-  Future<void> _markSentAndAdvance(Promotion promo, String contactId) async {
-    setState(() => _markingSent = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      await promotionsState.markSent(promo.id, contactId);
-      // Soft opt-in: aggiorna anche optInSentAt sul contatto → passa
-      // automaticamente da ⚪ Nuovo a 🟡 In attesa.
-      if (promo.channel == 'soft_optin') {
-        await marketingContactsState.markOptInSent(contactId);
-      }
-      // Se questo era l'ultimo, marca completata
-      final updated = promotionsState.promotions.firstWhere(
-        (p) => p.id == promo.id,
-        orElse: () => promo,
+      // 1. apri WhatsApp (fire-and-forget: l'utente deve premere Invia in WA)
+      await MessagingService.sendWhatsApp(
+        phone: contact.phone,
+        message: message,
       );
-      if (updated.sentCount + 1 >= updated.totalCount) {
-        await promotionsState.markCompleted(promo.id);
+      // 2. marca soft opt-in inviato (passa il contatto a 🟡 In attesa)
+      if (promo.channel == 'soft_optin') {
+        await marketingContactsState.markOptInSent(contact.id);
       }
+      // 3. tracking sulla promo
+      await promotionsState.markSent(promo.id, contact.id);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
-      }
+      messenger.showSnackBar(SnackBar(content: Text('Errore: $e')));
     } finally {
-      if (mounted) setState(() => _markingSent = false);
+      if (mounted) setState(() => _opening.remove(contact.id));
     }
   }
 
@@ -100,8 +84,7 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Annullare la campagna?'),
         content: const Text(
-          'Gli invii gia\' effettuati restano. Potrai sempre riprenderla '
-          'dalla dashboard.',
+          'Gli invii gia\' effettuati restano. Potrai sempre riprenderla.',
         ),
         actions: [
           TextButton(
@@ -119,13 +102,32 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
     return r == true;
   }
 
+  /// Calcola la lista dei destinatari da mostrare.
+  /// soft_optin: tutti i ⚪ Nuovi correnti (dinamico).
+  /// promo: recipientIds del promo - sentIds.
+  List<MarketingContact> _computeRecipients(Promotion promo) {
+    final all = marketingContactsState.contacts;
+    if (promo.channel == 'soft_optin') {
+      return all.where((c) => c.isNew).toList()
+        ..sort((a, b) =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    }
+    // promo standard: recipientIds snapshot - sentIds
+    final pending = promo.recipientIds
+        .where((id) => !promo.sentIds.contains(id))
+        .toSet();
+    return all.where((c) => pending.contains(c.id)).toList()
+      ..sort((a, b) =>
+          a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
 
     return AnimatedBuilder(
-      animation: Listenable.merge(
-          [promotionsState, marketingContactsState]),
+      animation:
+          Listenable.merge([promotionsState, marketingContactsState]),
       builder: (context, _) {
         Promotion? promo;
         try {
@@ -146,32 +148,24 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
         if (promo.status == 'cancelled') {
           return _cancelledScreen(context, palette, promo);
         }
-        // In progress
-        final pending = promo.recipientIds
-            .where((id) => !promo!.sentIds.contains(id))
-            .toList();
-        if (pending.isEmpty) {
-          // Just finished - mark completed
+
+        final recipients = _computeRecipients(promo);
+        final sentCount = promo.sentIds.length;
+        final remaining = recipients.length;
+        final total = sentCount + remaining;
+        final progress = total == 0 ? 1.0 : sentCount / total;
+
+        // Auto-complete se nessuno piu' da inviare (solo per snapshot promo)
+        if (promo.channel != 'soft_optin' && remaining == 0 &&
+            promo.status == 'in_progress') {
           promotionsState.markCompleted(promo.id).catchError((_) {});
-          return _completedScreen(context, palette, promo);
-        }
-        final currentId = pending.first;
-        MarketingContact? current;
-        try {
-          current = marketingContactsState.contacts
-              .firstWhere((c) => c.id == currentId);
-        } catch (_) {
-          // Contatto scomparso (es. eliminato). Marca come "skipped" passando avanti
-          promotionsState.markSent(promo.id, currentId).catchError((_) {});
-          return Scaffold(
-            appBar: AppBar(title: const Text('Invio WhatsApp')),
-            body: const Center(child: CircularProgressIndicator()),
-          );
         }
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Invio WhatsApp'),
+            title: Text(promo.channel == 'soft_optin'
+                ? 'Campagna Soft Opt-in'
+                : 'Invio WhatsApp'),
             actions: [
               TextButton.icon(
                 style: TextButton.styleFrom(foregroundColor: Colors.white),
@@ -188,18 +182,31 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
               ),
             ],
           ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          body: Column(
             children: [
-              _progressCard(palette, promo),
-              const SizedBox(height: 16),
-              _contactCard(palette, current, promo),
-              const SizedBox(height: 16),
-              _messagePreview(palette, _buildMessage(promo, current)),
-              const SizedBox(height: 16),
-              _actions(palette, promo, current),
-              const SizedBox(height: 24),
-              _antiSpamHint(palette),
+              _progressCard(palette, promo, sentCount, remaining,
+                  total, progress),
+              _hint(palette, promo),
+              Expanded(
+                child: recipients.isEmpty
+                    ? _emptyState(palette, promo)
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        itemCount: recipients.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: 6),
+                        itemBuilder: (context, i) {
+                          final c = recipients[i];
+                          return _ContactRow(
+                            contact: c,
+                            palette: palette,
+                            opening: _opening.contains(c.id),
+                            onOpenWhatsApp: () =>
+                                _openAndMark(promo!, c),
+                          );
+                        },
+                      ),
+              ),
             ],
           ),
         );
@@ -207,8 +214,11 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
     );
   }
 
-  Widget _progressCard(SilvestrePalette palette, Promotion promo) {
+  Widget _progressCard(SilvestrePalette palette, Promotion promo,
+      int sentCount, int remaining, int total, double progress) {
+    final isSoftOptIn = promo.channel == 'soft_optin';
     return Container(
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: palette.primary.withValues(alpha: 0.08),
@@ -220,214 +230,141 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.send, color: palette.primary),
+              Icon(isSoftOptIn ? Icons.campaign : Icons.send,
+                  color: palette.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${promo.sentCount} / ${promo.totalCount} inviati',
+                  isSoftOptIn ? 'Richiesta consenso marketing' : promo.title,
                   style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: palette.primary,
-                      fontSize: 16),
+                      color: palette.textPrimary,
+                      fontSize: 15),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                '${(promo.progress * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: palette.primary,
-                    fontSize: 18),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _statBlock(palette, 'Inviati', sentCount,
+                  const Color(0xFF2E7D32)),
+              const SizedBox(width: 14),
+              _statBlock(palette, 'Ancora da inviare', remaining,
+                  palette.warning),
+              const SizedBox(width: 14),
+              _statBlock(palette, 'Totale', total, palette.primary),
+            ],
+          ),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: promo.progress,
+              value: progress,
               minHeight: 8,
               backgroundColor: palette.border,
               valueColor: AlwaysStoppedAnimation<Color>(palette.primary),
             ),
           ),
+          const SizedBox(height: 4),
+          Text('${(progress * 100).toStringAsFixed(1)}% completato',
+              style: TextStyle(
+                  fontSize: 11,
+                  color: palette.textSecondary,
+                  fontStyle: FontStyle.italic)),
         ],
       ),
     );
   }
 
-  Widget _contactCard(
-      SilvestrePalette palette, MarketingContact c, Promotion promo) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFF25D366),
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.chat),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'DESTINATARIO ${promo.sentCount + 1} / ${promo.totalCount}',
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: palette.textSecondary),
-                ),
-                Text(
-                  c.name,
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: palette.textPrimary),
-                ),
-                Text(
-                  c.phone,
-                  style: TextStyle(
-                      fontFamily: 'Consolas',
-                      fontSize: 14,
-                      color: palette.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _messagePreview(SilvestrePalette palette, String message) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE7FFDB),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF25D366)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.preview, color: Color(0xFF075E54), size: 18),
-              const SizedBox(width: 6),
-              const Text('Anteprima messaggio',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF075E54),
-                      letterSpacing: 0.5)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(message,
-              style: const TextStyle(
-                  fontSize: 13, height: 1.4, color: Colors.black87)),
-        ],
-      ),
-    );
-  }
-
-  Widget _actions(
-      SilvestrePalette palette, Promotion promo, MarketingContact c) {
+  Widget _statBlock(
+      SilvestrePalette palette, String label, int n, Color color) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF25D366),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: _opening
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.open_in_new),
-            onPressed: _opening ? null : () => _sendCurrent(promo, c),
-            label: const Text(
-              '1. APRI WHATSAPP CON MESSAGGIO',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Premi "Invia" su WhatsApp, poi torna qui per il prossimo',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 11,
-              color: palette.textSecondary,
-              fontStyle: FontStyle.italic),
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: palette.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: _markingSent
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.check_circle),
-            onPressed: _markingSent
-                ? null
-                : () => _markSentAndAdvance(promo, c.id),
-            label: const Text(
-              '2. INVIATO, PROSSIMO →',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextButton(
-          onPressed: () => _markSentAndAdvance(promo, c.id),
-          child: const Text('Salta questo contatto'),
-        ),
+        Text(label,
+            style: TextStyle(
+                fontSize: 10,
+                color: palette.textSecondary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3)),
+        Text('$n',
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color)),
       ],
     );
   }
 
-  Widget _antiSpamHint(SilvestrePalette palette) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: palette.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: palette.warning.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: palette.warning, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Consigliato max 50-100 invii al giorno per non '
-              'triggerare l\'anti-spam WhatsApp. Riprendi domani dalla '
-              'dashboard.',
-              style: TextStyle(fontSize: 11, color: palette.textPrimary),
+  Widget _hint(SilvestrePalette palette, Promotion promo) {
+    final isSoftOptIn = promo.channel == 'soft_optin';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: palette.warning.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: palette.warning.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: palette.warning, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isSoftOptIn
+                    ? 'Cliccando "Apri WhatsApp" il contatto passa subito da '
+                        '⚪ Nuovo a 🟡 In attesa. Consigliato 50-100/giorno per '
+                        'non triggerare l\'anti-spam.'
+                    : 'Cliccando "Apri WhatsApp" il contatto viene marcato come '
+                        'inviato e sparisce dalla lista.',
+                style: TextStyle(fontSize: 11, color: palette.textPrimary),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState(SilvestrePalette palette, Promotion promo) {
+    final isSoftOptIn = promo.channel == 'soft_optin';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.celebration,
+                size: 64, color: const Color(0xFF2E7D32)),
+            const SizedBox(height: 16),
+            Text(
+              isSoftOptIn
+                  ? 'Nessun cliente ⚪ Nuovo da contattare al momento!'
+                  : 'Tutti i destinatari sono stati contattati!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: palette.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isSoftOptIn
+                  ? 'Per riportare clienti dallo stato 🔴 a ⚪ Nuovo usa il '
+                      'pulsante "Riporta in Nuovi" nella Tab 🔴 Rifiutati.'
+                  : 'Puoi chiudere questa schermata.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: palette.textSecondary,
+                  fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -452,7 +389,7 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
                       color: palette.textPrimary)),
               const SizedBox(height: 8),
               Text(
-                  'Inviati ${promo.sentCount} messaggi via WhatsApp '
+                  'Inviati ${promo.sentIds.length} messaggi via WhatsApp '
                   'a "${promo.title}".',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: palette.textSecondary)),
@@ -478,8 +415,7 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cancel,
-                  size: 96, color: palette.warning),
+              Icon(Icons.cancel, size: 96, color: palette.warning),
               const SizedBox(height: 20),
               Text('Campagna annullata',
                   style: TextStyle(
@@ -488,8 +424,7 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
                       color: palette.textPrimary)),
               const SizedBox(height: 8),
               Text(
-                  '${promo.sentCount} di ${promo.totalCount} messaggi erano '
-                  'già stati inviati.',
+                  '${promo.sentIds.length} messaggi erano stati inviati.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: palette.textSecondary)),
               const SizedBox(height: 24),
@@ -500,6 +435,84 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final MarketingContact contact;
+  final SilvestrePalette palette;
+  final bool opening;
+  final VoidCallback onOpenWhatsApp;
+
+  const _ContactRow({
+    required this.contact,
+    required this.palette,
+    required this.opening,
+    required this.onOpenWhatsApp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isFromCsv = contact.source.startsWith('csv');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          const Text('⚪', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 6),
+          Text(isFromCsv ? '📇' : '📱',
+              style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(contact.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: palette.textPrimary)),
+                Text(contact.phone,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: palette.textSecondary,
+                        fontFamily: 'Consolas')),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: opening
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
+                  )
+                : const Icon(Icons.chat, size: 14),
+            onPressed: opening ? null : onOpenWhatsApp,
+            label: const Text(
+              'Apri WhatsApp',
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ),
     );
   }
