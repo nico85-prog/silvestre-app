@@ -54,6 +54,13 @@ class AuthState extends ChangeNotifier {
     if (_currentUser != null) {
       PushNotificationsService.registerTokenForUser(_currentUser!.id)
           .catchError((_) {});
+      // Re-sync marketing_contacts: garantisce che email/nome/phone del
+      // cliente popolino il record marketing anche per utenti registrati
+      // PRIMA che esistesse la feature auto-sync. Idempotente via merge.
+      // Solo per clienti (non operatori).
+      if (!_currentUser!.isOperator) {
+        _syncMarketingContact(_currentUser!).catchError((_) {});
+      }
     }
   }
 
