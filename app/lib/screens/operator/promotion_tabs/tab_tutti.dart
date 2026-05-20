@@ -6,7 +6,7 @@ import '../../../theme/app_theme.dart';
 /// Template fisso del messaggio soft opt-in.
 String _buildSoftOptInMessage(String fullName) {
   final firstName = fullName.split(' ').first;
-  return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi 📸. '
+  return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi. '
       'Hai usato i nostri servizi in passato e vorremmo restare in '
       'contatto via WhatsApp con sconti riservati e novità.\n\n'
       'Rispondi SI per iscriverti, oppure ignora questo messaggio '

@@ -28,7 +28,7 @@ class _WhatsAppBatchScreenState extends State<WhatsAppBatchScreen> {
   String _buildMessage(Promotion promo, MarketingContact contact) {
     final firstName = contact.name.split(' ').first;
     if (promo.channel == 'soft_optin') {
-      return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi 📸. '
+      return 'Ciao $firstName, ti scriviamo da Silvestre Fotoservizi. '
           'Hai usato i nostri servizi in passato e vorremmo restare in '
           'contatto via WhatsApp con sconti riservati e novità.\n\n'
           'Rispondi SI per iscriverti, oppure ignora questo messaggio '
