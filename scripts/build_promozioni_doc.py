@@ -160,9 +160,21 @@ def main():
     # 3. IL MESSAGGIO DI SOFT OPT-IN
     # ============================================================
     add_heading(doc, "3. Campagna di soft opt-in iniziale", level=1)
+
+    add_callout(doc, "PERIMETRO ESCLUSIVO",
+                "La campagna di soft opt-in si applica UNICAMENTE ai contatti "
+                "del CSV storico che NON hanno mai scaricato l'app Silvestre "
+                "Fotoservizi. Chi è già registrato nell'app ha già espresso "
+                "la propria scelta marketing (sì o no) durante la registrazione, "
+                "quindi non riceve mai il messaggio di soft opt-in. Vedi "
+                "sezione 5.2.2 «Le 4 categorie di cliente» per il dettaglio "
+                "delle regole di dedup automatico.")
+
+    add_para(doc, "")
     add_para(doc, "3.1 — Template del messaggio", bold=True, size=12)
     add_para(doc,
-             "Il messaggio inviato una singola volta a ciascuno dei 6000+ contatti:")
+             "Il messaggio inviato una singola volta a ciascun contatto del "
+             "CSV NON registrato in app:")
     p = doc.add_paragraph()
     r = p.add_run(
         "« Ciao {{nome}}, ti scriviamo da Silvestre Fotoservizi 📸. Hai usato i "
@@ -602,9 +614,13 @@ def main():
                   "promo mascherata (che sarebbe spam).", italic=True)
 
     add_para(doc, "")
-    add_para(doc, "5.6.3 — Lista bersaglio: SOLO ⚪ Nuovi", bold=True, size=11)
+    add_para(doc, "5.6.3 — Lista bersaglio: SOLO ⚪ Nuovi NON registrati in app",
+             bold=True, size=11)
     add_bullet(doc, "Il workflow mostra unicamente contatti con "
-                    "optInStatus=pending AND optInSentAt=null")
+                    "optInStatus=pending AND optInSentAt=null AND NESSUN "
+                    "user registrato in app con telefono corrispondente")
+    add_bullet(doc, "Chi ha scaricato l'app non è MAI candidato al soft "
+                    "opt-in — ha già scelto sì/no marketing in registrazione")
     add_bullet(doc, "I 🟡 In attesa non compaiono — sono già stati contattati "
                     "una volta. Se non rispondono entro 30 giorni vengono "
                     "auto-segnati no (mai più richiamati)")
@@ -735,7 +751,10 @@ def main():
     r.font.size = Pt(9)
     r.font.color.rgb = RGBColor(0xAA, 0xAA, 0xAA)
 
-    out_path = Path(__file__).resolve().parent.parent / "Promozioni.docx"
+    out_path = (
+        Path(__file__).resolve().parent.parent / "docs" / "Promozioni.docx"
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(out_path)
     print(f"[OK] Documento generato: {out_path}")
     print(f"     Pagine stimate: ~6-8 A4")
