@@ -50,6 +50,30 @@ class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crea Promozione'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(
+                'NUOVA PROMOZIONE',
+                style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 12),
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NewPromotionScreen(),
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -77,19 +101,6 @@ class _OperatorPromotionScreenState extends State<OperatorPromotionScreen>
           PromoTabInAttesa(palette: palette),
           PromoTabRifiutati(palette: palette),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF25D366),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('NUOVA PROMOZIONE',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const NewPromotionScreen(),
-          ),
-        ),
       ),
     );
   }
