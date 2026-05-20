@@ -23,7 +23,11 @@ class _EmailVerificationBannerState extends State<EmailVerificationBanner> {
       if (!mounted) return;
       setState(() => _justResent = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email di verifica reinviata.')),
+        const SnackBar(
+          content: Text(
+            'Email di verifica reinviata. Verifica anche la cartella SPAM.',
+          ),
+        ),
       );
     } on AuthException catch (e) {
       if (mounted) {
@@ -81,8 +85,11 @@ class _EmailVerificationBannerState extends State<EmailVerificationBanner> {
                     ),
                     Text(
                       _justResent
-                          ? 'Email inviata. Clicca il link nella mail.'
-                          : 'Controlla ${authState.currentUser?.email} e clicca il link.',
+                          ? 'Email inviata. Clicca il link nella mail. '
+                              'Verifica anche la cartella SPAM.'
+                          : 'Controlla ${authState.currentUser?.email} e '
+                              'clicca il link. Verifica anche la cartella '
+                              'SPAM.',
                       style: TextStyle(
                         fontSize: 11,
                         color: palette.textSecondary,
