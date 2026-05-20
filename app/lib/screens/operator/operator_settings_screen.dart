@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/user.dart';
+import '../../services/contacts_export_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/operators_state.dart';
 import '../../state/settings_state.dart';
@@ -93,6 +94,17 @@ class OperatorSettingsScreen extends StatelessWidget {
               palette: palette,
             ),
             const SizedBox(height: 24),
+            _SectionTitle('Esportazione dati', palette: palette),
+            const SizedBox(height: 4),
+            Text(
+              'Esporta in formato CSV (apribile con Excel) tutti i contatti '
+              'attualmente presenti su Firestore. Utile per backup periodici '
+              'o per fini di audit GDPR.',
+              style: TextStyle(fontSize: 12, color: palette.textSecondary),
+            ),
+            const SizedBox(height: 10),
+            _ExportContactsButton(palette: palette),
+            const SizedBox(height: 24),
             _SectionTitle('Negozio', palette: palette),
             const SizedBox(height: 8),
             Container(
@@ -139,6 +151,110 @@ class OperatorSettingsScreen extends StatelessWidget {
                     color: palette.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportContactsButton extends StatefulWidget {
+  final SilvestrePalette palette;
+  const _ExportContactsButton({required this.palette});
+
+  @override
+  State<_ExportContactsButton> createState() =>
+      _ExportContactsButtonState();
+}
+
+class _ExportContactsButtonState extends State<_ExportContactsButton> {
+  bool _exporting = false;
+
+  Future<void> _export() async {
+    setState(() => _exporting = true);
+    try {
+      final n = await ContactsExportService.exportAllToCsv();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '✓ Esportati $n contatti. File CSV scaricato sul tuo dispositivo.'),
+          backgroundColor: const Color(0xFF2E7D32),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Errore export: $e'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cloud_download_outlined,
+                  color: palette.primary, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Esporta tutti i contatti',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: palette.textPrimary,
+                      fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Genera un file .csv (separatore ";", apribile con Excel) con '
+            'nome, telefono, email, stato consenso, date di consenso/invio '
+            'soft opt-in, fonte. Il download parte automatico.',
+            style: TextStyle(
+                fontSize: 11, color: palette.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: palette.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            icon: _exporting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
+                  )
+                : const Icon(Icons.download),
+            onPressed: _exporting ? null : _export,
+            label: Text(
+              _exporting
+                  ? 'Esportazione in corso...'
+                  : '📥 SCARICA CONTATTI (.csv)',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
