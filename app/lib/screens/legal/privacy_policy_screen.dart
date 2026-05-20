@@ -76,9 +76,10 @@ class PrivacyPolicyScreen extends StatelessWidget {
           _h(context, 'Destinatari dei dati'),
           _p(context,
               'I tuoi dati sono trattati internamente. Possono essere condivisi con: '
-              'Google/Firebase (hosting, autenticazione, storage), provider di pagamento '
-              '(Stripe, Satispay) se scegli il pagamento online. Tutti hanno DPA conformi '
-              'al GDPR.'),
+              'Google/Firebase (hosting, autenticazione, storage), Cloudinary '
+              '(storage delle foto). Per i pagamenti usiamo il Bonifico '
+              'Istantaneo SEPA: nessun dato carta è memorizzato dall\'app. '
+              'Tutti i fornitori hanno DPA conformi al GDPR.'),
           _h(context, 'Trasferimento extra-UE'),
           _p(context,
               'Alcuni server Firebase si trovano negli USA. Il trasferimento avviene '

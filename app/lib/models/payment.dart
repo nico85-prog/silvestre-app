@@ -1,36 +1,26 @@
 enum PaymentMethod {
-  card,         // Stripe (online card)
-  satispay,     // Satispay Business
-  bankTransfer, // Bonifico Istantaneo (manual verification)
-  inStore,      // Pay at pickup (con caparra 20%)
+  bankTransfer, // Bonifico Istantaneo (manual verification) — UNICO metodo online
+  inStore,      // Pay at pickup (con caparra 20% via bonifico)
 }
 
 extension PaymentMethodX on PaymentMethod {
   String get key => name;
 
   String get label => switch (this) {
-        PaymentMethod.card => 'Carta di credito',
-        PaymentMethod.satispay => 'Satispay',
         PaymentMethod.bankTransfer => 'Bonifico Istantaneo',
         PaymentMethod.inStore => 'Paga in negozio',
       };
 
   String get shortLabel => switch (this) {
-        PaymentMethod.card => 'Carta',
-        PaymentMethod.satispay => 'Satispay',
         PaymentMethod.bankTransfer => 'Bonifico',
         PaymentMethod.inStore => 'In negozio',
       };
 
   String get description => switch (this) {
-        PaymentMethod.card =>
-            'Visa, Mastercard, Amex, postpay. Sicuro via Stripe.',
-        PaymentMethod.satispay =>
-            'Pagamento istantaneo dall\'app Satispay.',
         PaymentMethod.bankTransfer =>
-            'Versa l\'importo dal tuo conto e carica la ricevuta. L\'ordine parte dopo verifica.',
+            'Versa l\'importo dal tuo conto e carica la ricevuta. 0% commissioni.',
         PaymentMethod.inStore =>
-            'Versa il 20% di caparra ora (carta o Satispay). Il saldo lo paghi al ritiro.',
+            'Versa il 20% di caparra ora via bonifico. Il saldo lo paghi al ritiro.',
       };
 
   static PaymentMethod fromKey(String? k) =>
@@ -53,6 +43,8 @@ class PaymentResult {
   // Bonifico Istantaneo: URL della ricevuta caricata dal cliente (Cloudinary).
   // Operatore verifica manualmente il bonifico sul conto bancario e
   // conferma in app → payment.verified passa a true.
+  // Per ordini full-bonifico è il proof del pagamento totale; per ordini
+  // inStore con caparra è il proof della caparra (20%).
   final String? proofUrl;
   final bool verified;
 
@@ -79,6 +71,9 @@ class PaymentResult {
           'depositTransactionId': depositTransactionId,
         if (proofUrl != null) 'proofUrl': proofUrl,
         if (method == PaymentMethod.bankTransfer) 'verified': verified,
+        // Per ordini inStore con caparra-bonifico anche serve verifica
+        if (method == PaymentMethod.inStore && depositAmount > 0)
+          'verified': verified,
       };
 }
 
@@ -105,5 +100,5 @@ const BankAccount kShopBankAccount = BankAccount(
 /// Percentuale caparra obbligatoria per "Paga in negozio".
 const double kDepositPercentage = 0.20;
 
-/// Caparra minima in euro (sotto questa soglia, Stripe rifiuta la transazione).
+/// Caparra minima in euro (sotto questa soglia non ha senso fare bonifico).
 const double kDepositMinAmount = 0.50;
