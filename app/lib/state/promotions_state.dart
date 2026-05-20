@@ -13,7 +13,7 @@ class Promotion {
   final DateTime? validFrom;
   final DateTime? validTo;
   final List<String> photoUrls;
-  final String channel; // 'whatsapp' | 'fcm' | 'email'
+  final String channel; // 'whatsapp' (promo standard) | 'soft_optin' | 'fcm' (futuro)
   final String status; // 'draft' | 'in_progress' | 'completed' | 'cancelled'
   final List<String> recipientIds;
   final List<String> sentIds;

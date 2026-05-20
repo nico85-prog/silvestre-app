@@ -251,27 +251,28 @@ def main():
     add_para(doc, "")
     add_para(doc, "4.2 — I 3 canali di invio promo (gratuiti)", bold=True, size=12)
     add_table(doc,
-              headers=["Canale", "Costo", "Pace realistico", "Limite"],
+              headers=["Canale", "Stato attuale", "Costo", "Note"],
               rows=[
-                  ["Push notification in-app (FCM)",
-                   "0 € illimitato",
-                   "Istantaneo a tutti",
-                   "Solo a chi ha l'app installata + acceptedMarketing=true"],
-                  ["Email (Brevo free tier)",
-                   "0 € fino a 300/giorno",
-                   "Quasi istantaneo",
-                   "Solo a chi ha email + acceptedMarketing=true"],
                   ["WhatsApp manual batch",
+                   "ATTIVO",
                    "0 € sempre",
-                   "50-100 invii/giorno (anti-ban WhatsApp)",
-                   "Operatore preme «Invia» 1 volta per ogni contatto"],
+                   "Operatore preme «Apri WhatsApp» 1 volta per ogni "
+                   "contatto. 50-100 invii/giorno per non triggerare "
+                   "l'anti-spam"],
+                  ["Push notification in-app (FCM)",
+                   "STUB (richiede Blaze + Cloud Function)",
+                   "0 € illimitato sotto Blaze",
+                   "Bottone visibile nel form Nuova Promozione ma mostra "
+                   "dialog 'configura Cloud Functions'. Sblocco con upgrade "
+                   "Blaze + ~2h sviluppo"],
               ])
 
-    add_callout(doc, "Perché 3 canali",
-                "FCM raggiunge solo chi ha l'app (oggi pochi, in crescita nel "
-                "tempo). Email raggiunge chi ha lasciato l'indirizzo. WhatsApp "
-                "raggiunge tutti gli altri ma è lento. Combinandoli "
-                "intelligentemente copri quasi il 100% della base opted-in.")
+    add_callout(doc, "Perché WhatsApp e (in futuro) Push",
+                "WhatsApp raggiunge tutti i 6000+ contatti della rubrica "
+                "storica (telefono universale). Push notification (FCM) "
+                "raggiungeranno solo gli utenti app — oggi pochi, in "
+                "crescita nel tempo. Email rimosso perché poco usato dai "
+                "clienti del negozio.")
 
     add_para(doc, "")
     add_para(doc, "4.3 — Perché NON usiamo WhatsApp Cloud API a pagamento", bold=True, size=12)
@@ -290,356 +291,168 @@ def main():
     add_para(doc, "5.1 — Struttura generale", bold=True, size=12)
     add_para(doc,
              "Nuova card nella dashboard operatore «Crea Promozione». "
-             "Aprendola si arriva a una schermata con 4 tab in alto, in questo "
-             "ordine preciso (la sequenza è progettata per ricordare le regole "
-             "di compliance PRIMA che l'operatore inizi a creare promozioni):")
-    add_bullet(doc, "Tab 1 — «Logica & GDPR» (compliance first, sempre come prima vista)")
-    add_bullet(doc, "Tab 2 — «Crea Promozione» (form + invio)")
-    add_bullet(doc, "Tab 3 — «Contatti Inclusi» (selezione destinatari)")
-    add_bullet(doc, "Tab 4 — «Contatti Esclusi» (re-include)")
-
-    add_para(doc, "")
-    add_para(doc, "5.2 — Tab 1: Logica & Conformità GDPR", bold=True, size=12)
+             "Aprendola si arriva a una schermata con 6 tab in alto + un "
+             "pulsante verde «NUOVA PROMOZIONE» in alto a destra. "
+             "L'ordine delle tab è progettato per ricordare la compliance "
+             "PRIMA che l'operatore inizi a creare promozioni:")
+    add_bullet(doc, "Tab 1 — «Logica & GDPR» (documentazione + statistiche)")
+    add_bullet(doc, "Tab 2 — «👥 Tutti (N)» — ACTION SURFACE: tutti i contatti "
+                    "con bottoni di azione contestuali (OPT IN / SI / STOP / "
+                    "reset / NO RESET)")
+    add_bullet(doc, "Tab 3 — «🟢 Acconsentiti (N)» (read-only)")
+    add_bullet(doc, "Tab 4 — «⚪ Nuovi (N)» (read-only)")
+    add_bullet(doc, "Tab 5 — «🟡 In attesa (N)» (read-only)")
+    add_bullet(doc, "Tab 6 — «🔴 Rifiutati (N)» (read-only)")
     add_para(doc,
-             "PRIMA tab del pannello. Read-only. Mostra in modo trasparente la "
-             "logica di gestione del consenso, lo stato corrente della base "
-             "marketing e fornisce il punto di accesso alla campagna soft "
-             "opt-in. Due scopi: (a) ricordare all'operatore le regole "
-             "anti-spam del sistema PRIMA di creare promozioni, (b) dimostrare "
-             "al Garante Privacy in caso di verifica che il software rispetta "
-             "le scelte dei clienti.")
-
-    add_para(doc, "")
-    add_para(doc, "5.2.1 — Gli stati di un contatto (optInStatus)", bold=True, size=11)
-    add_table(doc,
-              headers=["Stato", "Significato",
-                       "Riceve promo standard?", "Riceve soft opt-in?"],
-              rows=[
-                  ["🟢 yes",
-                   "Ha dato consenso marketing (via app o risposta SI al WhatsApp)",
-                   "Sì", "No (è già dentro)"],
-                  ["⚪ pending mai contattato",
-                   "Nel CSV ma soft opt-in mai inviato — «Nuovo»",
-                   "No", "Sì (candidato)"],
-                  ["🟡 pending già contattato",
-                   "Soft opt-in inviato, attesa risposta SI/STOP — «In attesa»",
-                   "No", "No (già contattato)"],
-                  ["🔴 no",
-                   "Ha risposto STOP o 30 giorni senza risposta",
-                   "No mai", "No mai"],
-              ])
-
-    add_para(doc, "")
-    add_para(doc, "5.2.2 — Le 4 categorie di cliente (regole di dedup)",
-             bold=True, size=11)
-    add_table(doc,
-              headers=["Categoria", "Riceve soft opt-in?", "Motivo"],
-              rows=[
-                  ["A — Solo CSV, mai entrato in app",
-                   "SÌ",
-                   "Mai chiesto consenso, soft opt-in è richiesta legittima"],
-                  ["B — Registrato in app con acceptedMarketing=true",
-                   "NO",
-                   "Già opted-in dall'app, è già in lista marketing attiva"],
-                  ["C — Registrato in app con acceptedMarketing=false",
-                   "NO ASSOLUTO",
-                   "Ha esplicitamente rifiutato — GDPR vieta nuova richiesta"],
-                  ["D — CSV + Registrato in app con marketing rifiutato",
-                   "NO",
-                   "La scelta esplicita più recente (in app) vince sul CSV"],
-              ])
-
-    add_para(doc, "")
-    add_para(doc, "5.2.3 — La REGOLA D'ORO", bold=True, size=11)
-    p = doc.add_paragraph()
-    r = p.add_run(
-        "La scelta esplicita del cliente vince SEMPRE sullo stato CSV."
-    )
-    r.bold = True
-    r.italic = True
-    r.font.size = Pt(11)
-    r.font.color.rgb = RGBColor(0xF4, 0x75, 0x21)
-
-    add_para(doc, "Esempi pratici:")
-    add_bullet(doc, "Cliente in CSV con pending → si registra in app spuntando "
-                    "marketing → diventa yes. Da ora riceve le promo.")
-    add_bullet(doc, "Cliente in CSV con pending → si registra in app SENZA "
-                    "spuntare marketing → diventa no definitivo. Mai più contattato.")
-    add_bullet(doc, "Cliente in CSV con pending → riceve soft opt-in → "
-                    "risponde «SI» → diventa yes. Riceve le future promo.")
-    add_bullet(doc, "Cliente in CSV con pending → riceve soft opt-in → "
-                    "risponde «STOP» → diventa no definitivo.")
-    add_bullet(doc, "Cliente in CSV con pending → riceve soft opt-in → non "
-                    "risponde per 30 giorni → cron job lo segna no automatico.")
-
-    add_para(doc, "")
-    add_para(doc, "5.2.4 — Cosa NON deve mai succedere (impedito by design)",
-             bold=True, size=11)
-    add_bullet(doc, "Mandare promo a 🟡 In attesa o ⚪ Nuovo "
-                    "(Tab 3 li filtra automaticamente, non li mostra proprio)")
-    add_bullet(doc, "Mandare soft opt-in a chi ha rifiutato in app "
-                    "(lo script di dedup li salta automaticamente)")
-    add_bullet(doc, "Riprovare soft opt-in dopo che il cliente ha mandato STOP "
-                    "(passa subito a no permanente)")
-    add_bullet(doc, "Mandare soft opt-in due volte allo stesso «In attesa» "
-                    "(i 🟡 non sono ricandidati al soft opt-in)")
-
-    add_para(doc, "")
-    add_para(doc, "5.2.5 — Auto-cleanup giornaliero", bold=True, size=11)
+             "I counter (N) tra parentesi si aggiornano in tempo reale.",
+             italic=True)
     add_para(doc,
-             "Una Cloud Function schedulata gira ogni giorno alle 03:00 e:")
-    add_bullet(doc, "Trova tutti i contatti con optInStatus=pending "
-                    "e optInSentAt < oggi - 30 giorni")
-    add_bullet(doc, "Li marca optInStatus=no definitivo")
-    add_bullet(doc, "Logga l'azione in collection audit_log per tracciabilità "
-                    "Garante Privacy")
+             "Pulsante «+ NUOVA PROMOZIONE» (verde, in alto a destra) "
+             "apre un form dedicato per creare e lanciare una campagna "
+             "promo standard a tutti i 🟢 Acconsentiti via WhatsApp manual "
+             "batch.")
+
 
     add_para(doc, "")
-    add_para(doc, "5.2.6 — Statistiche live mostrate in cima alla Tab 1",
-             bold=True, size=11)
-    add_para(doc,
-             "Pannello che si aggiorna in tempo reale dal Firestore. Esempio "
-             "di rendering:")
-    p = doc.add_paragraph()
-    r = p.add_run(
-        "🟢 Acconsentiti (yes):              1.847\n"
-        "⚪ Nuovi mai contattati:            4.501\n"
-        "🟡 In attesa risposta:                111\n"
-        "🔴 Rifiutati/STOP/scaduti:            310\n"
-        "                                  ──────\n"
-        "📦 Totale contatti gestiti:        6.769\n"
-        "📱 Di cui registrati in app:          234"
-    )
-    r.font.name = "Consolas"
-    r.font.size = Pt(10)
-    r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-
-    add_para(doc, "")
-    add_para(doc, "5.2.7 — Bottone «Lancia campagna soft opt-in»",
-             bold=True, size=11)
-    add_para(doc,
-             "In fondo alla Tab 1, un riquadro CTA dedicato al soft opt-in:")
-    p = doc.add_paragraph()
-    r = p.add_run(
-        "« HAI N CLIENTI NUOVI DA CONTATTARE\n\n"
-        "Lancia la campagna di richiesta consenso (soft opt-in).\n"
-        "Pace consigliato: 50-100 messaggi al giorno per non triggerare "
-        "l'anti-spam di WhatsApp.\n\n"
-        "[ 🚀 LANCIA / RIPRENDI CAMPAGNA SOFT OPT-IN ] »"
-    )
-    r.italic = True
-    r.font.size = Pt(10)
-    r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-    add_para(doc, "")
-    add_para(doc,
-             "Cliccando, apre un workflow dedicato (vedi sezione 5.6) che "
-             "lavora ESCLUSIVAMENTE su contatti ⚪ Nuovi (i 🟡 In attesa sono "
-             "già stati contattati e non si ricontattano fino a scadenza dei "
-             "30 giorni).")
-
-    add_para(doc, "")
-    add_para(doc, "5.2.8 — Storico campagne", bold=True, size=11)
-    add_para(doc,
-             "Tabella delle ultime 10 campagne (sia promo standard che soft "
-             "opt-in): data, canale, numero destinatari, esito. Permette "
-             "all'operatore di verificare quando ha mandato cosa e a chi.")
-
-    add_para(doc, "")
-    add_para(doc, "5.3 — Tab 2: Crea Promozione", bold=True, size=12)
-    add_bullet(doc, "Campo «Titolo promozione» (testo breve)")
-    add_bullet(doc, "Campo «Dettagli promozione» (testo multilinea)")
-    add_bullet(doc, "Upload «Foto esempio» (max 3 immagini, salvate su Cloudinary)")
-    add_bullet(doc, "Range validità: data picker «Dal» — data picker «Al»")
-    add_bullet(doc, "Campo «Costo/Sconto» (testo libero, es. «-30%» o «10 €»)")
-    add_bullet(doc, "Anteprima live del messaggio composto coi placeholder sostituiti")
-    add_bullet(doc, "3 bottoni di invio nella sezione inferiore («Invia Push», "
-                    "«Invia Email», «Invia WhatsApp»), tutti disabilitati finché "
-                    "i campi obbligatori non sono compilati")
-
-    add_para(doc, "")
-    add_para(doc, "5.3.1 — Alert di conferma pre-invio", bold=True, size=11)
-    add_para(doc,
-             "Quando l'operatore clicca uno dei bottoni di invio, prima parte "
-             "un dialog di conferma:")
-    p = doc.add_paragraph()
-    r = p.add_run(
-        "« Stai per inviare la promozione a N contatti via {canale}.\n\n"
-        "Hai impostato correttamente i contatti inclusi (Tab 3) ed esclusi "
-        "(Tab 4)? »"
-    )
-    r.italic = True
-    r.font.size = Pt(10)
-    r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-    add_para(doc, "")
-    add_para(doc,
-             "Due bottoni: SÌ, INVIA (verde) → procede con l'invio. "
-             "NO, INDIETRO (grigio) → torna al pannello senza inviare.")
-
-    add_para(doc, "")
-    add_para(doc, "5.4 — Tab 3: Destinatari Promozione", bold=True, size=12)
-    add_para(doc,
-             "Lista dei clienti che possono ricevere la promo standard che "
-             "stai creando in Tab 2. PRINCIPIO ANTI-ERRORE: questa tab "
-             "contiene SOLO i clienti con consenso marketing attivo "
-             "(🟢 Acconsentiti). I 🟡 In attesa e ⚪ Nuovi NON compaiono "
-             "affatto in questa lista — sono gestiti separatamente dalla "
-             "campagna soft opt-in (vedi 5.6). Conseguenza: l'operatore "
-             "NON può sbagliare e includere per errore chi non ha "
-             "acconsentito. È impossibile by design.")
-
-    add_para(doc, "")
-    add_para(doc, "Mockup della Tab 3:", italic=True)
-    p = doc.add_paragraph()
-    r = p.add_run(
-        "🛡 Questa lista contiene SOLO i clienti che hanno dato consenso\n"
-        "   marketing (N). I M in attesa o nuovi non sono qui — usali con\n"
-        "   la campagna soft opt-in (Tab 1).\n\n"
-        "🔍 [Cerca nome o telefono...]        [TUTTI] [📱 App] [📞 CSV]\n\n"
-        "[✓ INCLUDI TUTTI N]  [✗ ESCLUDI TUTTI]   N inclusi / N acconsentiti\n\n"
-        "[✓] 📱 Mario Rossi    +39 335 12345 67    [✓ INCLUDI] [✗ ESCLUDI]\n"
-        "[✓] 📞 Anna Bianchi   +39 348 99 81 245   [✓ INCLUDI] [✗ ESCLUDI]\n"
-        "[✓] 📱 Luca Verdi     +39 333 77 22 109   [✓ INCLUDI] [✗ ESCLUDI]\n"
-        "..."
-    )
-    r.font.name = "Consolas"
-    r.font.size = Pt(9)
-    r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-
-    add_para(doc, "")
-    add_para(doc, "Componenti:")
-    add_bullet(doc, "Banner in cima che spiega la lista filtrata e rimanda alla "
-                    "campagna soft opt-in per gli altri")
-    add_bullet(doc, "Barra di ricerca (cerca per nome / numero di telefono)")
-    add_bullet(doc, "Filtri rapidi a chip: Tutti | 📱 Solo app | 📞 Solo CSV "
-                    "(NON più 🟡 / ⚪ perché non esistono qui)")
-    add_bullet(doc, "Bottone «INCLUDI TUTTI N» (verde) — sicuro by design "
-                    "perché agisce solo sugli N acconsentiti")
-    add_bullet(doc, "Bottone «ESCLUDI TUTTI» (rosso) — per ripartire da zero "
-                    "selezione")
-    add_bullet(doc, "Default all'apertura: tutti gli acconsentiti spuntati "
-                    "(massimo opt-in del segmento)")
-    add_bullet(doc, "Lista contatti scrollabile. Ogni riga contiene:")
-    add_bullet(doc, "  ‣ Checkbox a sinistra (spuntata = incluso, vuota = escluso)",
-               level=1)
-    add_bullet(doc, "  ‣ Badge sorgente (📱 app / 📞 solo CSV)", level=1)
-    add_bullet(doc, "  ‣ Nome e telefono del cliente", level=1)
-    add_bullet(doc, "  ‣ Bottone «INCLUDI» (verde) — spunta checkbox", level=1)
-    add_bullet(doc, "  ‣ Bottone «ESCLUDI» (rosso) — sposta in Tab 4", level=1)
-    add_bullet(doc, "Contatore live in cima: «N inclusi / M acconsentiti totali»")
-
-    add_para(doc, "")
-    add_para(doc, "5.4.1 — Sanity check finale prima dell'invio",
-             bold=True, size=11)
-    add_para(doc,
-             "Con Tab 3 ristretta agli acconsentiti by design, il vecchio "
-             "«smart guardrail» diventa superfluo. Rimane un sanity check "
-             "leggero: prima dell'invio finale, il sistema rilegge gli "
-             "optInStatus dei selezionati da Firestore. Se qualcuno è passato "
-             "a optInStatus=no tra la selezione e l'invio (caso edge: cliente "
-             "ha mandato STOP nel frattempo), viene rimosso automaticamente "
-             "dal batch e l'operatore vede un messaggio: «3 contatti rimossi "
-             "perché hanno revocato il consenso dopo la tua selezione.»")
-
-    add_para(doc, "")
-    add_para(doc, "5.5 — Tab 4: Contatti Esclusi", bold=True, size=12)
-    add_bullet(doc, "Stessa barra di ricerca della Tab 3")
-    add_bullet(doc, "Lista contatti che l'operatore ha escluso manualmente da "
-                    "questa specifica campagna (es. cliente che si lamenta di "
-                    "ricevere troppe promo)")
-    add_bullet(doc, "Bottone per riga: «RE-INCLUDI» (verde) → rimette in Tab 3")
-    add_bullet(doc, "I contatti con optInStatus=no (STOP definitivo o no-reply "
-                    "30 gg) NON compaiono qui — sono nascosti del tutto, mai "
-                    "più raggiungibili")
-    add_bullet(doc, "I 🟡 In attesa e ⚪ Nuovi NON compaiono qui (non sono mai "
-                    "stati in Tab 3, quindi non possono essere stati esclusi)")
-
-    add_para(doc, "")
-    add_para(doc, "5.6 — Workflow «Campagna soft opt-in» (separato)",
+    add_para(doc, "5.2 — Tab 1: Logica & Conformità GDPR (compliance first)",
              bold=True, size=12)
     add_para(doc,
-             "Workflow dedicato, completamente separato dal pannello promo "
-             "standard. Accessibile solo dal bottone «🚀 Lancia campagna soft "
-             "opt-in» nella Tab 1. Esiste apposta separato per evitare ogni "
-             "rischio di mischiare promo e richiesta consenso.")
+             "PRIMA tab. Solo documentazione e statistiche live. Non contiene "
+             "azioni (zero bottoni di invio). Serve a ricordare all'operatore "
+             "le regole anti-spam del sistema PRIMA di andare nelle altre tab "
+             "a interagire coi contatti.")
+    add_para(doc, "")
+    add_para(doc, "Contenuto:", bold=True, size=11)
+    add_bullet(doc, "Statistiche live (totale, acconsentiti, nuovi, in attesa, "
+                    "rifiutati) aggiornate in tempo reale")
+    add_bullet(doc, "Tabella delle 4 categorie di cliente (A/B/C/D) e quale "
+                    "riceve il soft opt-in")
+    add_bullet(doc, "Regola d'oro: la scelta esplicita in app vince sempre "
+                    "sullo stato CSV importato")
+    add_bullet(doc, "Lista «Cosa NON deve mai succedere» (impedito by design)")
+    add_bullet(doc, "Spiegazione auto-cleanup pending 30 giorni (futuro, "
+                    "richiede Cloud Function / piano Blaze)")
+    add_bullet(doc, "Box «Come si usa il pannello» che rimanda alla Tab Tutti "
+                    "per le azioni concrete")
 
     add_para(doc, "")
-    add_para(doc, "5.6.1 — Canale di invio: SOLO WhatsApp manual batch",
-             bold=True, size=11)
+    add_para(doc, "5.3 — Tab 2: 👥 Tutti (action surface principale)",
+             bold=True, size=12)
     add_para(doc,
-             "Il messaggio soft opt-in viene inviato SOLO via WhatsApp manual "
-             "batch. Motivo tecnico: i clienti in soft opt-in (⚪ Nuovi) sono "
-             "per definizione NON registrati nell'app — se lo fossero, "
-             "avrebbero già fatto la scelta marketing sì/no in registrazione. "
-             "Pertanto:")
+             "TAB PRINCIPALE di interazione. Mostra TUTTI i contatti gestiti "
+             "ordinati alfabeticamente, con badge colorato dello stato "
+             "(🟢🟡⚪🔴) e info contestuali (data invio, motivo rifiuto, "
+             "tempo trascorso). A destra di ogni riga c'è un bottone di "
+             "azione contestuale al suo stato:")
     add_table(doc,
-              headers=["Canale", "Usato per soft opt-in?", "Motivo"],
+              headers=["Stato cliente", "Bottone di azione", "Cosa fa"],
               rows=[
-                  ["Push notification (FCM)",
-                   "NO",
-                   "FCM raggiunge solo utenti app già registrati. I ⚪ Nuovi "
-                   "non hanno mai installato l'app, irraggiungibili via FCM"],
-                  ["Email (Brevo)",
-                   "NO (per ora)",
-                   "Possibile fallback futuro per chi ha email nel CSV ma "
-                   "non risponde a WhatsApp. Non implementato nella prima fase"],
-                  ["WhatsApp manual batch",
-                   "SÌ — unico canale",
-                   "Tutti i ⚪ Nuovi hanno numero di telefono. È il canale "
-                   "diretto e gratuito per raggiungerli e ricevere la "
-                   "risposta SI/STOP conversazionale"],
+                  ["⚪ Nuovo",
+                   "Bottone verde «OPT IN»",
+                   "Apre WhatsApp col template fisso di richiesta consenso. "
+                   "Il contatto passa a 🟡 In attesa (markOptInSent)."],
+                  ["🟡 In attesa",
+                   "✅ SI / ❌ STOP",
+                   "Click SI → contatto passa a 🟢 Acconsentito. "
+                   "Click STOP → dialog «STOP esplicito o NO generico?». "
+                   "Il motivo determina se sarà resettabile."],
+                  ["🟢 Acconsentito",
+                   "(nessuno in produzione)",
+                   "Read-only: il cliente è già nella lista marketing attiva."],
+                  ["🔴 Rifiutato",
+                   "🔄 reset oppure 🔒 «NO RESET»",
+                   "Mostra reset se rejectionReason ammette riprova "
+                   "(no_reply_30d, manual_operator). Mostra «NO RESET» "
+                   "bloccato se il cliente ha detto STOP esplicito o "
+                   "rifiutato in app (vincolo GDPR)."],
               ])
+    add_para(doc, "")
+    add_para(doc, "Componenti aggiuntivi:", bold=True, size=11)
+    add_bullet(doc, "Banner spiegativo in cima")
+    add_bullet(doc, "Barra di ricerca per nome / telefono / email")
+    add_bullet(doc, "Counter «N contatti totali» live")
+    add_bullet(doc, "Background row colorato in base allo stato")
+    add_bullet(doc, "Badge sorgente: 📱 (app) o 📇 (rubrica)")
 
     add_para(doc, "")
-    add_para(doc, "5.6.2 — Template fisso del messaggio soft opt-in",
-             bold=True, size=11)
+    add_para(doc, "5.4 — Tab 3-6: 🟢 Acconsentiti / ⚪ Nuovi / 🟡 In attesa / "
+                  "🔴 Rifiutati (read-only)",
+             bold=True, size=12)
     add_para(doc,
-             "Nel workflow soft opt-in il messaggio NON è modificabile "
-             "dall'operatore (a differenza della promo standard, dove "
-             "titolo/dettagli/costo sono liberi). Il testo è fisso e "
-             "approvato:")
-    p = doc.add_paragraph()
-    r = p.add_run(
-        "« Ciao {{nome}}, ti scriviamo da Silvestre Fotoservizi 📸. Hai "
-        "usato i nostri servizi in passato e vorremmo restare in contatto "
-        "via WhatsApp con sconti riservati e novità.\n\n"
-        "Rispondi SI per iscriverti, oppure ignora questo messaggio per "
-        "uscire dalla lista.\n\n"
-        "In qualunque momento puoi disiscriverti rispondendo STOP. »"
-    )
-    r.italic = True
-    r.font.size = Pt(10)
-    r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-    add_para(doc, "Bloccare il testo elimina il rischio che l'operatore "
-                  "trasformi accidentalmente la richiesta consenso in una "
-                  "promo mascherata (che sarebbe spam).", italic=True)
+             "Le 4 tab dedicate sono VISTE FILTRATE READ-ONLY della stessa "
+             "base dati di Tab Tutti. Servono per audit/focus su una "
+             "categoria specifica senza dover scrollare 6000+ contatti. "
+             "Ogni tab ha:")
+    add_bullet(doc, "Banner spiegativo: chi è in questa categoria, perché, "
+                    "cosa può succedere dopo")
+    add_bullet(doc, "Barra di ricerca")
+    add_bullet(doc, "Counter live nel titolo tab (es. «🟢 Acconsentiti (1.847)»)")
+    add_bullet(doc, "Lista contatti senza bottoni di azione (read-only)")
+    add_para(doc, "")
+    add_para(doc, "La Tab 🔴 Rifiutati mostra inoltre per ogni contatto:",
+             italic=True)
+    add_bullet(doc, "Data del rifiuto + tempo trascorso (es. «3 mesi fa»)")
+    add_bullet(doc, "Motivo testuale (es. «Cliente ha scritto STOP esplicito», "
+                    "«Cliente ha rifiutato il marketing in app», «Nessuna "
+                    "risposta dopo 30 giorni»)")
 
     add_para(doc, "")
-    add_para(doc, "5.6.3 — Lista bersaglio: SOLO ⚪ Nuovi NON registrati in app",
-             bold=True, size=11)
-    add_bullet(doc, "Il workflow mostra unicamente contatti con "
-                    "optInStatus=pending AND optInSentAt=null AND NESSUN "
-                    "user registrato in app con telefono corrispondente")
-    add_bullet(doc, "Chi ha scaricato l'app non è MAI candidato al soft "
-                    "opt-in — ha già scelto sì/no marketing in registrazione")
-    add_bullet(doc, "I 🟡 In attesa non compaiono — sono già stati contattati "
-                    "una volta. Se non rispondono entro 30 giorni vengono "
-                    "auto-segnati no (mai più richiamati)")
-    add_bullet(doc, "Possibilità di filtrare per numero d'ordine recente "
-                    "(es. «mostra solo chi ha ordinato negli ultimi 24 mesi»). "
-                    "Più alto il rapporto di recency, più alta la probabilità "
-                    "che il cliente ti riconosca e risponda")
-    add_bullet(doc, "Rate-limit di sicurezza: max 100 invii al giorno "
-                    "(consigliato 50-80 per non triggerare l'anti-spam di "
-                    "WhatsApp)")
+    add_para(doc, "5.5 — Pulsante «+ NUOVA PROMOZIONE» (form promo standard)",
+             bold=True, size=12)
+    add_para(doc,
+             "Pulsante verde in alto a destra dell'AppBar, sempre visibile "
+             "in tutte le tab. Apre uno schermo dedicato con il form di "
+             "creazione campagna promo standard.")
+    add_para(doc, "")
+    add_para(doc, "Campi del form:", bold=True, size=11)
+    add_bullet(doc, "Titolo promozione (testo breve)")
+    add_bullet(doc, "Dettagli promozione (multilinea)")
+    add_bullet(doc, "Costo / Sconto (es. «-30%», «da 10€», «gratis»)")
+    add_bullet(doc, "Data validità DA / Data validità A (date picker)")
+    add_bullet(doc, "Anteprima messaggio live (placeholder sostituiti)")
+    add_bullet(doc, "Counter «Destinatari: N clienti acconsentiti»")
+    add_para(doc, "")
+    add_para(doc, "Bottone «INVIA VIA WHATSAPP» verde in basso. Disabilitato "
+                  "finché tutti i campi non sono compilati. Al click parte "
+                  "il dialog di conferma («SI INVIA» verde / «NO INDIETRO» "
+                  "grigio). Se confermato, viene creata una Promotion document "
+                  "in Firestore con channel='whatsapp', recipientIds = "
+                  "snapshot di tutti i 🟢 Acconsentiti correnti, e si naviga "
+                  "alla schermata WhatsAppBatchScreen.")
 
     add_para(doc, "")
-    add_para(doc, "5.6.4 — Avanzamento e tracking", bold=True, size=11)
-    add_bullet(doc, "Ogni invio aggiorna optInSentAt=timestamp(now) e sposta "
-                    "il contatto da ⚪ Nuovo a 🟡 In attesa")
-    add_bullet(doc, "Progress bar in cima: «12 / 50 inviati oggi»")
-    add_bullet(doc, "Stato persistito in Firestore: se chiudi l'app, il "
-                    "giorno dopo riprendi da dove eri rimasto")
-    add_bullet(doc, "Per registrare la risposta del cliente vedi sezione 3.3")
+    add_para(doc, "5.6 — Schermata WhatsAppBatchScreen (invio batch)",
+             bold=True, size=12)
+    add_para(doc,
+             "Schermo dedicato dove l'operatore preme «Apri WhatsApp» per "
+             "ogni destinatario in modo seriale. Funziona in 2 modi:")
+    add_table(doc,
+              headers=["Modalità", "Recipients", "Comportamento"],
+              rows=[
+                  ["Promo standard (channel='whatsapp')",
+                   "Snapshot dei 🟢 Acconsentiti al momento della creazione",
+                   "Lista mostra recipientIds - sentIds. Quando vuoto, "
+                   "auto-completata."],
+                  ["Soft opt-in (channel='soft_optin')",
+                   "DINAMICO: tutti i ⚪ Nuovi correnti (re-query realtime)",
+                   "Reset di un 🔴 a ⚪ rientra automaticamente nella coda. "
+                   "Counter «Ancora da inviare» si aggiorna live."],
+              ])
+    add_para(doc, "")
+    add_para(doc, "Per ogni contatto in lista:", bold=True, size=11)
+    add_bullet(doc, "Click bottone verde «Apri WhatsApp»")
+    add_bullet(doc, "MessagingService.sendWhatsApp apre WhatsApp con messaggio "
+                    "precompilato")
+    add_bullet(doc, "L'operatore preme Invia su WhatsApp")
+    add_bullet(doc, "App automaticamente marca il contatto come inviato: "
+                    "markOptInSent per soft_optin, markSent sulla promo per "
+                    "promo standard")
+    add_bullet(doc, "Il contatto sparisce dalla lista (per soft_optin diventa "
+                    "🟡 In attesa; per promo standard è aggiunto a sentIds)")
+    add_para(doc, "")
+    add_para(doc, "Progress bar in cima mostra «inviati / ancora da inviare / "
+                  "totale» con percentuale.")
+
 
     # ============================================================
     # 6. FLUSSO OPERATIVO TIPICO

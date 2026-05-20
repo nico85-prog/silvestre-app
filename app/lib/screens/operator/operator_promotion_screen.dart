@@ -10,14 +10,17 @@ import 'promotion_tabs/tab_nuovi.dart';
 import 'promotion_tabs/tab_in_attesa.dart';
 import 'promotion_tabs/tab_rifiutati.dart';
 
-/// Pannello operatore "Crea Promozione" — 5 tab in ordine:
-///   1. Logica & GDPR (read-only docs + stats + CTA soft opt-in + Inbox)
-///   2. 🟢 Acconsentiti
-///   3. ⚪ Nuovi
-///   4. 🟡 In attesa
-///   5. 🔴 Rifiutati
+/// Pannello operatore "Crea Promozione" — 6 tab in ordine:
+///   1. Logica & GDPR (documentazione + stats)
+///   2. 👥 Tutti (action surface principale: bottoni OPT IN / SI / STOP /
+///      reset / NO RESET per riga)
+///   3. 🟢 Acconsentiti (read-only)
+///   4. ⚪ Nuovi (read-only)
+///   5. 🟡 In attesa (read-only)
+///   6. 🔴 Rifiutati (read-only)
 ///
-/// FAB "+" sempre visibile per creare una nuova promozione standard.
+/// Pulsante "+ NUOVA PROMOZIONE" in AppBar actions (alto a destra)
+/// apre form per promo standard.
 class OperatorPromotionScreen extends StatefulWidget {
   const OperatorPromotionScreen({super.key});
 
