@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Apertura nativa dei canali di messaggistica con testo pre-compilato.
@@ -40,11 +41,19 @@ class MessagingService {
 
     // 1° tentativo: scheme nativo whatsapp:// — passa direttamente al
     // protocol handler dell'OS (WhatsApp Business desktop su Windows/Mac/Linux,
-    // WhatsApp app su mobile). NON apre la pagina api.whatsapp.com nel
-    // browser → niente tab fantasma residua.
+    // WhatsApp app su mobile).
+    //
+    // Su web usiamo LaunchMode.inAppWebView (window.location.assign) invece di
+    // externalApplication (window.open _blank). location.assign con scheme
+    // whatsapp:// passa al protocol handler senza creare una tab fantasma:
+    // il browser tenta la navigation, l'OS handler la intercetta, la pagina
+    // corrente resta intatta. Niente seconda finestra api.whatsapp.com.
     final nativeUrl = Uri.parse('whatsapp://send?phone=$p&text=$encoded');
     try {
-      final ok = await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
+      final mode = kIsWeb
+          ? LaunchMode.inAppWebView
+          : LaunchMode.externalApplication;
+      final ok = await launchUrl(nativeUrl, mode: mode);
       if (ok) return true;
     } catch (_) {}
 
