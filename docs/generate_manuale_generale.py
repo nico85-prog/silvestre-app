@@ -183,7 +183,7 @@ p(doc, "Servizi esterni in cui SEI GIÀ registrato:", bold=True)
 table(doc,
       ["Servizio", "Tipo registrazione", "Costo attuale", "A cosa serve"],
       [
-          ["Firebase (Google)", "Account Google", "Gratis (Spark)", "Auth + database + push + hosting"],
+          ["Firebase (Google)", "Account Google", "Blaze (pay-as-you-go) ~0-5\u20ac/mese", "Auth + database + push + hosting + Cloud Functions"],
           ["Cloudinary", "Email + password", "Gratis (Developer)", "Magazzino foto utenti"],
           ["Pexels", "Email + password", "Gratis", "Foto stock per catalogo (con attribuzione automatica autori)"],
           ["GitHub", "Account GitHub", "Gratis", "Backup codice + CI/CD auto-deploy"],
@@ -203,8 +203,14 @@ bul(doc, [
     "Le password non le gestisci tu = nessun rischio data breach lato tuo.",
     "Quando il cliente torna in app dopo 6 mesi, ritrova i suoi ordini.",
 ])
-p(doc, "Costo: gratis per piccoli numeri. Quando attivi le push automatiche serve passare al "
-       "piano Blaze (~0-5\u20ac/mese in pratica per un negozio piccolo).")
+p(doc, "Costo: dal 20 maggio 2026 il progetto e' configurato col piano BLAZE "
+       "(pay-as-you-go). Significa: stesse soglie gratuite del piano Spark "
+       "(50k reads/giorno, 20k writes/giorno, 1 GiB storage, 2M Cloud "
+       "Functions invocazioni/mese, FCM ILLIMITATO), ma niente piu' errori "
+       "429 quando si supera la soglia istantanea. Si paga solo sopra "
+       "soglia: per Silvestre realisticamente 0\u20ac/mese, max 1-3\u20ac/mese "
+       "se l'app cresce. Il vero motivo dell'upgrade non e' il costo "
+       "(e' 0\u20ac) ma sbloccare Cloud Functions e rate limits adeguati.", bold=True)
 
 doc.add_paragraph()
 h(doc, "\u2601\ufe0f Cloudinary", 2)
@@ -301,7 +307,8 @@ table(doc,
           ["1", "WhatsApp Business sul negozio", "Ad ogni cambio stato dell'ordine, l'app apre automaticamente WhatsApp con il numero del cliente e il messaggio pre-compilato — l'operatore preme solo Invia. Per professionalità conviene attivare WhatsApp Business sul numero del negozio invece del personale.", "GRATIS", "15 min"],
           ["1", "Bonifico Istantaneo configurato", "Pagamento online a 0% commissioni: IBAN del negozio hardcoded in app (Banca Fideuram, Antonio Silvestre). Cliente paga dalla sua app bancaria, carica ricevuta, operatore conferma in app.", "GRATIS (0% fee)", "Fatto"],
           ["1", "Iubenda Privacy + Termini + Cookie GDPR", "Per legge, app che raccolgono email e dati personali DEVONO avere Privacy Policy e Cookie banner conformi GDPR.", "29-80\u20ac/anno", "30 min"],
-          ["2", "Cloud Functions Firebase (FONDAMENTALE)", "Senza Cloud Functions oggi sei bloccato su molte automazioni: push notification reali (FCM ai clienti app), cron job di pulizia automatica dei pending soft opt-in dopo 30gg, ricezione webhook per risposte WhatsApp Cloud API, e in futuro qualsiasi automazione server-side. Serve attivare il piano Blaze (pay-as-you-go) — in pratica resta gratis sotto soglia per un negozio piccolo (~0-5\u20ac/mese stimati). Senza Blaze tutto resta manual.", "Blaze: ~0-5\u20ac/mese", "2-3 h sviluppo"],
+          ["1", "Piano Blaze attivato (FATTO)", "Pay-as-you-go senza limiti operativi. Sblocca: Cloud Functions, FCM push reali, cron job automatici, niente piu' errori 429. Costo realistico per Silvestre: 0\u20ac/mese (sotto le soglie gratuite incluse). Soglie free: 50k reads/g, 20k writes/g, 1 GiB storage, 2M Cloud Functions invocazioni/mese.", "~0\u20ac/mese stimato", "5 min (carta)"],
+          ["2", "Cloud Functions deploy (FCM + cron)", "Una volta attivo Blaze, deploy delle Cloud Functions per: (a) invio FCM push ai clienti app quando l'operatore crea promo, (b) cron job giornaliero che marca optInStatus=no i pending oltre 30 giorni, (c) eventuale webhook WhatsApp Cloud API. Tutto serverless, nessuna manutenzione.", "Inclusi nel Blaze", "2-3 h sviluppo"],
           ["2", "Aruba/FattureInCloud", "La normativa italiana richiede fatturazione elettronica oltre soglia.", "25-50\u20ac/anno", "1 h"],
           ["3", "Apple Developer", "Per pubblicare sull'App Store iPhone.", "99$/anno", "2 sett."],
           ["3", "Google Play Developer", "Per pubblicare sul Play Store Android.", "25$ una tantum", "3 sett."],
