@@ -92,5 +92,16 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    // ---- marketing_contacts ----
+    // Contatti CSV storici importati una tantum via script admin (REST API).
+    // Solo operatore/admin può leggere (per pannello Crea Promozione).
+    // I clienti normali NON possono mai vedere questa lista, neanche con
+    // APK reverse-engineered. Scrittura solo via Admin SDK (script o
+    // Cloud Function): qui la blocchiamo dal client.
+    match /marketing_contacts/{contactId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
   }
 }
