@@ -1,7 +1,6 @@
 enum PaymentMethod {
-  card,      // Stripe (online card)
-  satispay,  // Satispay Business
-  inStore,   // Pay at pickup
+  card,      // Carta (gateway online: SumUp)
+  inStore,   // Pay at pickup (con caparra 20% online)
 }
 
 extension PaymentMethodX on PaymentMethod {
@@ -9,23 +8,19 @@ extension PaymentMethodX on PaymentMethod {
 
   String get label => switch (this) {
         PaymentMethod.card => 'Carta di credito',
-        PaymentMethod.satispay => 'Satispay',
         PaymentMethod.inStore => 'Paga in negozio',
       };
 
   String get shortLabel => switch (this) {
         PaymentMethod.card => 'Carta',
-        PaymentMethod.satispay => 'Satispay',
         PaymentMethod.inStore => 'In negozio',
       };
 
   String get description => switch (this) {
         PaymentMethod.card =>
-            'Visa, Mastercard, Amex, postpay. Sicuro via Stripe.',
-        PaymentMethod.satispay =>
-            'Pagamento istantaneo dall\'app Satispay.',
+            'Visa, Mastercard, Amex, Bancomat. Pagamento sicuro via SumUp.',
         PaymentMethod.inStore =>
-            'Versa il 20% di caparra ora (carta o Satispay). Il saldo lo paghi al ritiro.',
+            'Versa il 20% di caparra ora (carta). Il saldo lo paghi al ritiro.',
       };
 
   static PaymentMethod fromKey(String? k) =>
