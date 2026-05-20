@@ -200,7 +200,7 @@ class PromoTabLogicaGdpr extends StatelessWidget {
             _th('Motivo'),
           ],
         ),
-        _row('A — Solo CSV, mai entrato in app',
+        _row('A — Solo rubrica, mai entrato in app',
             '✅ SÌ',
             'Mai chiesto consenso, soft opt-in è richiesta legittima'),
         _row('B — App con marketing=true',
@@ -209,7 +209,7 @@ class PromoTabLogicaGdpr extends StatelessWidget {
         _row('C — App con marketing=false',
             '🚫 NO ASSOLUTO',
             'Ha esplicitamente rifiutato — GDPR vieta nuova richiesta'),
-        _row('D — CSV + App con marketing=false',
+        _row('D — Rubrica + App con marketing=false',
             '❌ NO',
             'Vale la scelta esplicita più recente (in app)'),
       ],
@@ -231,7 +231,7 @@ class PromoTabLogicaGdpr extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'La scelta esplicita del cliente vince SEMPRE sullo stato CSV.',
+              'La scelta esplicita del cliente in app vince SEMPRE sullo stato ereditato dalla rubrica.',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontStyle: FontStyle.italic,

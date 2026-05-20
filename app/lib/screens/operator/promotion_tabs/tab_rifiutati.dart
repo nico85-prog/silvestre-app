@@ -158,7 +158,7 @@ class _PromoTabRifiutatiState extends State<PromoTabRifiutati> {
         children: [
           const Text('🔴', style: TextStyle(fontSize: 14)),
           const SizedBox(width: 4),
-          Text(isFromCsv ? '📞' : '📱',
+          Text(isFromCsv ? '📇' : '📱',
               style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 8),
           Expanded(

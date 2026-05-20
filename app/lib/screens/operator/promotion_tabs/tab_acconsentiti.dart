@@ -68,7 +68,7 @@ class _PromoTabAcconsentitiState extends State<PromoTabAcconsentiti> {
                   const SizedBox(width: 6),
                   _chip('📱 App', 'app', palette),
                   const SizedBox(width: 6),
-                  _chip('📞 CSV', 'csv', palette),
+                  _chip('📇 Rubrica', 'csv', palette),
                 ],
               ),
             ),
@@ -131,8 +131,8 @@ class _PromoTabAcconsentitiState extends State<PromoTabAcconsentiti> {
                   'Possono essere:\n'
                   '• 📱 Utenti registrati nell\'app con la box marketing '
                   'spuntata, oppure\n'
-                  '• 📞 Contatti del CSV che hanno risposto "SI" alla '
-                  'campagna di soft opt-in.\n\n'
+                  '• 📇 Contatti della rubrica storica che hanno risposto '
+                  '"SI" alla campagna di soft opt-in.\n\n'
                   'Solo loro possono ricevere legalmente le promozioni '
                   'standard create dal pulsante "+" in basso a destra.',
                   style: TextStyle(
@@ -188,7 +188,7 @@ class _PromoTabAcconsentitiState extends State<PromoTabAcconsentiti> {
         children: [
           const Text('🟢', style: TextStyle(fontSize: 14)),
           const SizedBox(width: 4),
-          Text(isFromCsv ? '📞' : '📱',
+          Text(isFromCsv ? '📇' : '📱',
               style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 8),
           Expanded(

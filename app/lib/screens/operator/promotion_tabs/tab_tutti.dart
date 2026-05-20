@@ -296,7 +296,7 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 18)),
           const SizedBox(width: 8),
-          Text(isFromCsv ? '📞' : '📱',
+          Text(isFromCsv ? '📇' : '📱',
               style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 8),
           Expanded(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../state/marketing_contacts_state.dart';
 import '../../../theme/app_theme.dart';
 
-/// Tab ⚪ Nuovi — clienti del CSV mai contattati per il marketing.
+/// Tab ⚪ Nuovi — clienti della rubrica storica mai contattati per il marketing.
 /// Categoria A della tabella in Tab 1: candidati alla campagna soft opt-in.
 class PromoTabNuovi extends StatefulWidget {
   final SilvestrePalette palette;
@@ -107,8 +107,8 @@ class _PromoTabNuoviState extends State<PromoTabNuovi> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Questa lista contiene i contatti del CSV storico che '
-                  'non hanno ancora ricevuto la richiesta di consenso '
+                  'Questa lista contiene i contatti della rubrica storica '
+                  'che non hanno ancora ricevuto la richiesta di consenso '
                   'marketing (il "soft opt-in") e non sono mai entrati '
                   'nell\'app.\n\n'
                   'Sono i candidati naturali della campagna di soft '
@@ -142,7 +142,7 @@ class _PromoTabNuoviState extends State<PromoTabNuovi> {
         children: [
           const Text('⚪', style: TextStyle(fontSize: 14)),
           const SizedBox(width: 4),
-          Text(isFromCsv ? '📞' : '📱',
+          Text(isFromCsv ? '📇' : '📱',
               style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 8),
           Expanded(

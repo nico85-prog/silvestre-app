@@ -11,9 +11,10 @@ GoogleService-Info.plist
 master_account.txt
 *_account.txt
 
-# Customer contacts (privacy / GDPR)
+# Customer contacts (privacy / GDPR) — Firestore e' il master, no git
 Contatti_Clienti.csv
 contacts.csv
+docs/archive/Contatti_Clienti_*.csv
 
 # OS
 .DS_Store
