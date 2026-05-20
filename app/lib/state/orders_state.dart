@@ -74,8 +74,13 @@ class OrdersState extends ChangeNotifier {
     String? customerPhone,
     PaymentResult? payment,
   }) async {
-    final pickupCode =
-        'SLV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    // Bonifico: usa la causale (= pickupCode pre-generato dalla sheet) per
+    // far combaciare l'ordine con quello che il cliente ha scritto sul
+    // bonifico. Altrimenti genera codice nuovo come al solito.
+    final pickupCode = (payment?.method == PaymentMethod.bankTransfer &&
+            payment?.transactionId != null)
+        ? payment!.transactionId!
+        : 'SLV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     final order = CustomerOrder(
       id: '',
       userId: userId,

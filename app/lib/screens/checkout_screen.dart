@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/payment.dart';
+import '../services/cloudinary_service.dart';
+import '../state/auth_state.dart';
 import '../theme/app_theme.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -75,6 +79,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) => _SatispaySheet(total: widget.total, palette: palette),
+        );
+        break;
+      case PaymentMethod.bankTransfer:
+        result = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) =>
+              _BankTransferSheet(total: widget.total, palette: palette),
         );
         break;
     }
@@ -198,6 +211,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         PaymentMethod.card => 'Paga € ${widget.total.toStringAsFixed(2)} con carta',
         PaymentMethod.satispay =>
             'Paga € ${widget.total.toStringAsFixed(2)} con Satispay',
+        PaymentMethod.bankTransfer =>
+            'Versa € ${widget.total.toStringAsFixed(2)} con bonifico',
       };
 }
 
@@ -216,12 +231,14 @@ class _MethodTile extends StatelessWidget {
   IconData get _icon => switch (method) {
         PaymentMethod.card => Icons.credit_card,
         PaymentMethod.satispay => Icons.smartphone,
+        PaymentMethod.bankTransfer => Icons.account_balance,
         PaymentMethod.inStore => Icons.storefront_outlined,
       };
 
   Color get _accent => switch (method) {
         PaymentMethod.card => const Color(0xFF635BFF), // Stripe purple
         PaymentMethod.satispay => const Color(0xFFEB4F2A), // Satispay orange
+        PaymentMethod.bankTransfer => const Color(0xFF2E7D32), // 0% fee green
         PaymentMethod.inStore => palette.primary,
       };
 
@@ -871,6 +888,355 @@ class _DepositMethodTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Bonifico Istantaneo: 0% commissione. Cliente paga dalla sua banca,
+/// carica la ricevuta, operatore verifica a mano sul conto e conferma.
+class _BankTransferSheet extends StatefulWidget {
+  final double total;
+  final SilvestrePalette palette;
+  const _BankTransferSheet({required this.total, required this.palette});
+
+  @override
+  State<_BankTransferSheet> createState() => _BankTransferSheetState();
+}
+
+class _BankTransferSheetState extends State<_BankTransferSheet> {
+  // Causale = pickupCode pre-generato. L'operatore lo cercherà sull'estratto
+  // conto per identificare quale ordine è stato pagato.
+  late final String _causale =
+      'SLV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+  final ImagePicker _picker = ImagePicker();
+
+  String? _proofUrl;
+  bool _uploading = false;
+  bool _confirming = false;
+
+  Future<void> _pickAndUploadProof() async {
+    final user = authState.currentUser;
+    if (user == null) return;
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 2000,
+    );
+    if (picked == null) return;
+    setState(() => _uploading = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final result = await CloudinaryService.uploadBytes(
+        bytes: bytes,
+        fileName: picked.name,
+        userId: user.id,
+        folderSuffix: 'bank_transfer_proofs',
+      );
+      if (!mounted) return;
+      setState(() {
+        _uploading = false;
+        _proofUrl = result.url;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _uploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload ricevuta fallito: $e')),
+      );
+    }
+  }
+
+  Future<void> _confirm() async {
+    if (_proofUrl == null) return;
+    setState(() => _confirming = true);
+    if (!mounted) return;
+    Navigator.pop(
+      context,
+      PaymentResult(
+        method: PaymentMethod.bankTransfer,
+        transactionId: _causale, // = pickupCode, usato anche come causale
+        paidNow: false,
+        verified: false,
+        proofUrl: _proofUrl,
+      ),
+    );
+  }
+
+  void _copyToClipboard(String value, String label) {
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label copiato'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.account_balance, color: Color(0xFF2E7D32)),
+                const SizedBox(width: 8),
+                Text('Bonifico Istantaneo',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: palette.textPrimary,
+                    )),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text('0% FEE',
+                      style: TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10,
+                      )),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Effettua il bonifico dall\'app della tua banca usando i dati '
+              'qui sotto. Poi carica una foto della ricevuta.',
+              style:
+                  TextStyle(fontSize: 12, color: palette.textSecondary),
+            ),
+            const SizedBox(height: 18),
+            _bankRow(
+              palette,
+              label: 'IBAN',
+              value: kShopBankAccount.iban,
+              onCopy: () => _copyToClipboard(kShopBankAccount.iban, 'IBAN'),
+              monospace: true,
+            ),
+            const SizedBox(height: 8),
+            _bankRow(
+              palette,
+              label: 'Intestatario',
+              value: kShopBankAccount.holder,
+              onCopy: () => _copyToClipboard(
+                  kShopBankAccount.holder, 'Intestatario'),
+            ),
+            const SizedBox(height: 8),
+            _bankRow(
+              palette,
+              label: 'Banca',
+              value: kShopBankAccount.bankName,
+              onCopy: null,
+            ),
+            const SizedBox(height: 8),
+            _bankRow(
+              palette,
+              label: 'Importo',
+              value: '€ ${widget.total.toStringAsFixed(2)}',
+              onCopy: () => _copyToClipboard(
+                  widget.total.toStringAsFixed(2), 'Importo'),
+              highlight: true,
+            ),
+            const SizedBox(height: 8),
+            _bankRow(
+              palette,
+              label: 'Causale',
+              value: _causale,
+              onCopy: () => _copyToClipboard(_causale, 'Causale'),
+              monospace: true,
+              highlight: true,
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: palette.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border:
+                    Border.all(color: palette.warning.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: palette.warning, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Inserisci la causale ESATTA per identificare il '
+                      'tuo ordine. Senza causale corretta il bonifico '
+                      'potrebbe non essere associato in tempi rapidi.',
+                      style: TextStyle(
+                          fontSize: 11, color: palette.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (_proofUrl == null)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: _uploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.upload_file),
+                  label: Text(_uploading
+                      ? 'Caricamento ricevuta…'
+                      : 'Carica foto della ricevuta'),
+                  onPressed: _uploading ? null : _pickAndUploadProof,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF2E7D32)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        color: Color(0xFF2E7D32)),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Ricevuta caricata',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2E7D32)),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _proofUrl = null),
+                      child: const Text('Cambia'),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: (_proofUrl == null || _confirming) ? null : _confirm,
+                child: _confirming
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Conferma ordine (in attesa verifica)',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla'),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'L\'ordine partirà in lavorazione dopo che l\'operatore avrà '
+              'verificato il bonifico sul conto bancario (di solito entro '
+              '1-2 ore in orario di apertura).',
+              style: TextStyle(
+                  fontSize: 11,
+                  color: palette.textSecondary,
+                  fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bankRow(
+    SilvestrePalette palette, {
+    required String label,
+    required String value,
+    VoidCallback? onCopy,
+    bool monospace = false,
+    bool highlight = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: highlight
+            ? palette.primary.withValues(alpha: 0.08)
+            : palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: highlight
+              ? palette.primary.withValues(alpha: 0.4)
+              : palette.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(label,
+                style: TextStyle(
+                    color: palette.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: highlight ? palette.primary : palette.textPrimary,
+                fontFamily: monospace ? 'Consolas' : null,
+                fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
+                fontSize: 14,
+                letterSpacing: monospace ? 0.5 : 0,
+              ),
+            ),
+          ),
+          if (onCopy != null)
+            IconButton(
+              icon: const Icon(Icons.copy, size: 16),
+              onPressed: onCopy,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              tooltip: 'Copia',
+            ),
+        ],
       ),
     );
   }
