@@ -130,6 +130,22 @@ class MarketingContactsState extends ChangeNotifier {
     });
   }
 
+  /// Riporta un contatto allo stato iniziale ⚪ Nuovo: optInStatus=pending,
+  /// optInSentAt=null. Usato per ri-includere contatti dopo un periodo,
+  /// es. dopo che la scadenza 30gg li ha messi in 🔴.
+  ///
+  /// USO RESPONSABILE: per i 🔴 che hanno detto STOP esplicitamente,
+  /// questo è una violazione GDPR. Solo l'operatore sa il motivo del
+  /// rifiuto: l'UI deve mostrare un warning chiaro prima di permettere
+  /// il reset dei 🔴.
+  Future<void> resetToNuovo(String contactId) async {
+    await _db.collection('marketing_contacts').doc(contactId).update({
+      'optInStatus': 'pending',
+      'optInSentAt': null,
+      'optInRepliedAt': null,
+    });
+  }
+
   @override
   void dispose() {
     _sub?.cancel();

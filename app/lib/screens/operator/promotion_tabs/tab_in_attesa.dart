@@ -247,6 +247,16 @@ class _InAttesaRowState extends State<_InAttesaRow> {
               onPressed: () => _act(
                   () => marketingContactsState.markOptInNo(c.id)),
             ),
+            IconButton(
+              tooltip: 'Riporta in ⚪ Nuovi (per riprovare soft opt-in)',
+              icon: const Icon(Icons.restart_alt, size: 22),
+              color: palette.textSecondary,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: () => _act(
+                  () => marketingContactsState.resetToNuovo(c.id)),
+            ),
           ],
         ],
       ),

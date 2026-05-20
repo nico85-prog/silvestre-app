@@ -145,6 +145,123 @@ class _PromoTabRifiutatiState extends State<PromoTabRifiutati> {
   }
 
   Widget _row(SilvestrePalette palette, MarketingContact c) {
+    return _RejectedRow(contact: c, palette: palette);
+  }
+}
+
+class _RejectedRow extends StatefulWidget {
+  final MarketingContact contact;
+  final SilvestrePalette palette;
+  const _RejectedRow({required this.contact, required this.palette});
+
+  @override
+  State<_RejectedRow> createState() => _RejectedRowState();
+}
+
+class _RejectedRowState extends State<_RejectedRow> {
+  bool _busy = false;
+
+  Future<void> _confirmReset() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final palette = widget.palette;
+        return AlertDialog(
+          icon: Icon(Icons.warning_amber_rounded,
+              color: palette.error, size: 36),
+          title: const Text('⚠ Attenzione GDPR'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Stai per riportare ${widget.contact.name} '
+                'dallo stato 🔴 Rifiutato a ⚪ Nuovo.',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Il sistema NON ricorda perché è stato rifiutato. Procedi SOLO se sei certo che:',
+                style: TextStyle(
+                    fontSize: 13, color: palette.textSecondary),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '✅ Era finito qui per scadenza 30 giorni senza risposta '
+                'al soft opt-in (riprovo OK dopo qualche mese)',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF2E7D32),
+                    height: 1.4),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '❌ NON ha mai risposto STOP esplicitamente '
+                '(riprovare = violazione GDPR sanzionabile)',
+                style: TextStyle(
+                    fontSize: 12, color: palette.error, height: 1.4),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '❌ NON si è registrato in app togliendo il consenso '
+                'marketing (scelta esplicita intoccabile)',
+                style: TextStyle(
+                    fontSize: 12, color: palette.error, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Confermando, ti assumi la responsabilità che questo cliente '
+                'non abbia dato un rifiuto esplicito.',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: palette.textSecondary),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.palette.error,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Riporta in ⚪ Nuovi'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+    setState(() => _busy = true);
+    try {
+      await marketingContactsState.resetToNuovo(widget.contact.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(
+              '${widget.contact.name} riportato in ⚪ Nuovi.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    final c = widget.contact;
     final isFromCsv = c.source.startsWith('csv');
     final when = c.optInRepliedAt;
     return Container(
@@ -183,6 +300,22 @@ class _PromoTabRifiutatiState extends State<PromoTabRifiutati> {
               ],
             ),
           ),
+          if (_busy)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            IconButton(
+              tooltip: 'Riporta in ⚪ Nuovi (con conferma GDPR)',
+              icon: const Icon(Icons.restart_alt, size: 22),
+              color: palette.warning,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: _confirmReset,
+            ),
         ],
       ),
     );
