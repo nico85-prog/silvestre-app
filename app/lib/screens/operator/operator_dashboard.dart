@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/order_overload.dart';
 import 'operator_history_screen.dart';
 import 'operator_order_detail_screen.dart';
+import 'operator_promotion_screen.dart';
 
 class OperatorDashboard extends StatelessWidget {
   const OperatorDashboard({super.key});
@@ -127,6 +128,18 @@ class OperatorDashboard extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (_) => const OperatorHistoryScreen()),
+                    ),
+                  ),
+                  _StatCard(
+                    label: 'Crea Promozione',
+                    value: '✉',
+                    sub: 'Invia offerte ai clienti opted-in via Push / Email / WhatsApp',
+                    icon: Icons.campaign,
+                    color: const Color(0xFFF47521),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const OperatorPromotionScreen()),
                     ),
                   ),
                 ],
