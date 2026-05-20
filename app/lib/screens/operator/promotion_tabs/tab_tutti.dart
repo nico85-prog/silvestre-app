@@ -404,15 +404,17 @@ class _ContactActionRowState extends State<_ContactActionRow> {
             backgroundColor: const Color(0xFF25D366),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(
-                horizontal: 10, vertical: 4),
+                horizontal: 18, vertical: 12),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          icon: const Icon(Icons.chat, size: 14),
+          icon: const Icon(Icons.chat, size: 20),
           onPressed: _optIn,
           label: const Text('OPT IN',
               style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w800)),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5)),
         );
       case 'awaiting':
         return Row(
@@ -420,20 +422,20 @@ class _ContactActionRowState extends State<_ContactActionRow> {
           children: [
             IconButton(
               tooltip: 'SI ricevuto',
-              icon: const Icon(Icons.check_circle, size: 22),
+              icon: const Icon(Icons.check_circle, size: 28),
               color: const Color(0xFF2E7D32),
               padding: EdgeInsets.zero,
               constraints:
-                  const BoxConstraints(minWidth: 32, minHeight: 32),
+                  const BoxConstraints(minWidth: 42, minHeight: 42),
               onPressed: _markYes,
             ),
             IconButton(
               tooltip: 'STOP / NO',
-              icon: const Icon(Icons.cancel, size: 22),
+              icon: const Icon(Icons.cancel, size: 28),
               color: widget.palette.error,
               padding: EdgeInsets.zero,
               constraints:
-                  const BoxConstraints(minWidth: 32, minHeight: 32),
+                  const BoxConstraints(minWidth: 42, minHeight: 42),
               onPressed: _askReasonAndReject,
             ),
           ],
@@ -442,19 +444,20 @@ class _ContactActionRowState extends State<_ContactActionRow> {
         if (RejectionReason.isResettable(widget.contact.rejectionReason)) {
           return IconButton(
             tooltip: 'Riporta in ⚪ Nuovi',
-            icon: const Icon(Icons.restart_alt, size: 22),
+            icon: const Icon(Icons.restart_alt, size: 28),
             color: widget.palette.warning,
             padding: EdgeInsets.zero,
             constraints:
-                const BoxConstraints(minWidth: 32, minHeight: 32),
+                const BoxConstraints(minWidth: 42, minHeight: 42),
             onPressed: _confirmReset,
           );
         }
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: widget.palette.error.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: widget.palette.error),
           ),
           child: Tooltip(
@@ -463,20 +466,46 @@ class _ContactActionRowState extends State<_ContactActionRow> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.lock, size: 11, color: widget.palette.error),
-                const SizedBox(width: 2),
+                Icon(Icons.lock, size: 14, color: widget.palette.error),
+                const SizedBox(width: 4),
                 Text('NO RESET',
                     style: TextStyle(
                         color: widget.palette.error,
                         fontWeight: FontWeight.w800,
-                        fontSize: 8.5,
-                        letterSpacing: 0.3)),
+                        fontSize: 11,
+                        letterSpacing: 0.4)),
               ],
             ),
           ),
         );
+      case 'yes':
+        // TEMP: bottone reset per debugging. Rimuovere in produzione.
+        return IconButton(
+          tooltip: 'TEMP: reset a ⚪ Nuovo (debug)',
+          icon: const Icon(Icons.restart_alt, size: 28),
+          color: widget.palette.warning,
+          padding: EdgeInsets.zero,
+          constraints:
+              const BoxConstraints(minWidth: 42, minHeight: 42),
+          onPressed: () async {
+            setState(() => _busy = true);
+            final messenger = ScaffoldMessenger.of(context);
+            try {
+              await marketingContactsState
+                  .resetToNuovo(widget.contact.id);
+              messenger.showSnackBar(
+                SnackBar(content: Text(
+                    '${widget.contact.name} riportato in ⚪ Nuovo')),
+              );
+            } catch (e) {
+              messenger.showSnackBar(
+                  SnackBar(content: Text('Errore: $e')));
+            } finally {
+              if (mounted) setState(() => _busy = false);
+            }
+          },
+        );
       default:
-        // 🟢 yes → no action
         return const SizedBox.shrink();
     }
   }
