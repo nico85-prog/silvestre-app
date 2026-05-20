@@ -92,7 +92,7 @@ class OperatorDashboard extends StatelessWidget {
                 crossAxisCount: cols,
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
-                childAspectRatio: cols == 4 ? 1.5 : (cols == 3 ? 1.5 : 1.45),
+                childAspectRatio: cols == 4 ? 1.15 : (cols == 3 ? 1.15 : 1.1),
                 children: [
                   for (final s in const [
                     OrderStatus.submitted,
@@ -287,7 +287,7 @@ class _StatCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Ink(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
@@ -299,43 +299,44 @@ class _StatCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(5),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 16),
+                  child: Icon(icon, color: color, size: 20),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     label,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
+                        height: 1.15,
                         color: color),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(value,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 30,
                   fontWeight: FontWeight.w800,
                   color: color,
                   height: 1.0,
                 )),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Expanded(
               child: Text(sub,
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontSize: 10.5,
-                      height: 1.25,
+                      fontSize: 13,
+                      height: 1.3,
                       color: palette.textSecondary)),
             ),
           ],
