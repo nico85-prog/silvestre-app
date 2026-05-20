@@ -161,6 +161,19 @@ class _RejectedRow extends StatefulWidget {
 class _RejectedRowState extends State<_RejectedRow> {
   bool _busy = false;
 
+  String _elapsedFrom(DateTime? d) {
+    if (d == null) return 'data sconosciuta';
+    final now = DateTime.now();
+    final days = now.difference(d).inDays;
+    if (days == 0) return 'oggi';
+    if (days == 1) return '1 giorno fa';
+    if (days < 30) return '$days giorni fa';
+    final months = (days / 30).floor();
+    if (months < 12) return '$months mes${months == 1 ? "e" : "i"} fa';
+    final years = (days / 365).floor();
+    return '$years ann${years == 1 ? "o" : "i"} fa';
+  }
+
   Future<void> _confirmReset() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -264,8 +277,12 @@ class _RejectedRowState extends State<_RejectedRow> {
     final c = widget.contact;
     final isFromCsv = c.source.startsWith('csv');
     final when = c.optInRepliedAt;
+    final reasonLabel = RejectionReason.label(c.rejectionReason);
+    final resettable = RejectionReason.isResettable(c.rejectionReason);
+    final elapsed = _elapsedFrom(when);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(8),
@@ -288,15 +305,34 @@ class _RejectedRowState extends State<_RejectedRow> {
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                         color: palette.textPrimary)),
-                Text(
-                    c.phone +
-                        (when != null
-                            ? ' · rifiutato il ${when.day.toString().padLeft(2, '0')}/${when.month.toString().padLeft(2, '0')}/${when.year}'
-                            : ''),
+                Text(c.phone,
                     style: TextStyle(
                         fontSize: 11,
                         color: palette.textSecondary,
                         fontFamily: 'Consolas')),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.access_time,
+                        size: 11, color: palette.textSecondary),
+                    const SizedBox(width: 3),
+                    Text(elapsed,
+                        style: TextStyle(
+                            fontSize: 10.5,
+                            color: palette.textSecondary,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text('Motivo: $reasonLabel',
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          color: resettable
+                              ? palette.warning
+                              : palette.error,
+                          fontStyle: FontStyle.italic)),
+                ),
               ],
             ),
           ),
@@ -306,7 +342,7 @@ class _RejectedRowState extends State<_RejectedRow> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          else
+          else if (resettable)
             IconButton(
               tooltip: 'Riporta in ⚪ Nuovi (con conferma GDPR)',
               icon: const Icon(Icons.restart_alt, size: 22),
@@ -315,6 +351,34 @@ class _RejectedRowState extends State<_RejectedRow> {
               constraints:
                   const BoxConstraints(minWidth: 36, minHeight: 36),
               onPressed: _confirmReset,
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: palette.error.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: palette.error),
+              ),
+              child: Tooltip(
+                message:
+                    'Reset non autorizzato dal cliente (vincolo GDPR)',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock,
+                        size: 12, color: palette.error),
+                    const SizedBox(width: 3),
+                    Text('NO RESET',
+                        style: TextStyle(
+                            color: palette.error,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 9,
+                            letterSpacing: 0.3)),
+                  ],
+                ),
+              ),
             ),
         ],
       ),

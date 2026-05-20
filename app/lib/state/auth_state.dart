@@ -139,7 +139,7 @@ class AuthState extends ChangeNotifier {
     if (phone == null) return; // niente telefono, niente sync
     final status = user.acceptedMarketing ? 'yes' : 'no';
     final today = DateTime.now().toIso8601String().split('T').first;
-    await _db.collection('marketing_contacts').doc(phone).set({
+    final data = <String, dynamic>{
       'name': user.displayName,
       'phone': '+$phone',
       'email': user.email,
@@ -148,7 +148,15 @@ class AuthState extends ChangeNotifier {
       'source': 'app_register_$today',
       // optInRepliedAt = scelta esplicita appena espressa
       'optInRepliedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    // Se l'utente rifiuta marketing in app, la scelta è esplicita e
+    // VINCOLANTE: si segna come rejectionReason='app_decline' →
+    // NON resettabile dal pannello operatore.
+    if (!user.acceptedMarketing) {
+      data['rejectionReason'] = 'app_decline';
+    }
+    await _db.collection('marketing_contacts').doc(phone).set(
+      data, SetOptions(merge: true));
   }
 
   /// Send a password reset email to [email].

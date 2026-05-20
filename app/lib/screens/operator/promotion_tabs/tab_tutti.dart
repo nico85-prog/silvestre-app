@@ -14,7 +14,6 @@ class PromoTabTutti extends StatefulWidget {
 
 class _PromoTabTuttiState extends State<PromoTabTutti> {
   String _search = '';
-  String _statusFilter = 'all'; // 'all' | 'yes' | 'new' | 'awaiting' | 'no'
 
   String _statusOf(MarketingContact c) {
     if (c.isOptedIn) return 'yes';
@@ -54,9 +53,6 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
         // Ordinamento naturale: per nome
         list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-        if (_statusFilter != 'all') {
-          list = list.where((c) => _statusOf(c) == _statusFilter).toList();
-        }
         if (_search.trim().isNotEmpty) {
           final q = _search.trim().toLowerCase();
           list = list
@@ -85,25 +81,6 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _chip('Tutti', 'all', palette),
-                    const SizedBox(width: 6),
-                    _chip('🟢 Acconsentiti', 'yes', palette),
-                    const SizedBox(width: 6),
-                    _chip('⚪ Nuovi', 'new', palette),
-                    const SizedBox(width: 6),
-                    _chip('🟡 In attesa', 'awaiting', palette),
-                    const SizedBox(width: 6),
-                    _chip('🔴 Rifiutati', 'no', palette),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -118,7 +95,7 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
                     const SizedBox(width: 6),
                     Text(
                       '${list.length} contatti'
-                      '${_statusFilter == 'all' && _search.isEmpty ? ' totali' : ' trovati'}',
+                      '${_search.isEmpty ? ' totali' : ' trovati'}',
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: palette.textPrimary,
@@ -186,10 +163,9 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
                 Text(
                   'Vista d\'insieme di tutta la base contatti, '
                   'indipendentemente dallo stato. Usa la barra di ricerca '
-                  'per trovare un cliente per nome, telefono o email; '
-                  'usa i chip in alto per filtrare per stato. Le 4 tab '
-                  'dedicate restano disponibili per la gestione '
-                  'specifica di ciascuna categoria.',
+                  'per trovare un cliente per nome, telefono o email. '
+                  'Per gestire una categoria specifica usa le tab dedicate '
+                  '(🟢 Acconsentiti, ⚪ Nuovi, 🟡 In attesa, 🔴 Rifiutati).',
                   style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
@@ -199,31 +175,6 @@ class _PromoTabTuttiState extends State<PromoTabTutti> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _chip(String label, String value, SilvestrePalette palette) {
-    final selected = _statusFilter == value;
-    return InkWell(
-      onTap: () => setState(() => _statusFilter = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected
-              ? palette.primary.withValues(alpha: 0.15)
-              : palette.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: selected ? palette.primary : palette.border),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: selected
-                    ? palette.primary
-                    : palette.textSecondary)),
       ),
     );
   }

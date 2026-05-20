@@ -167,6 +167,51 @@ class _InAttesaRow extends StatefulWidget {
 class _InAttesaRowState extends State<_InAttesaRow> {
   bool _busy = false;
 
+  Future<void> _askReasonAndReject(
+      BuildContext context, MarketingContact c) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Marca ${c.name} come Rifiutato'),
+        content: const Text(
+          'Indica il motivo per cui il cliente finisce in 🔴 Rifiutati. '
+          'Questo determina se sarà possibile riprovare in futuro.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(ctx, RejectionReason.manualOperator),
+            style: TextButton.styleFrom(
+                foregroundColor: widget.palette.warning),
+            child: const Text('NO generico (riprovabile dopo)'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, RejectionReason.stop),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.palette.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('STOP esplicito (mai più)'),
+          ),
+        ],
+      ),
+    );
+    if (reason == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await marketingContactsState.markOptInNo(c.id, reason: reason);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Errore: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _act(Future<void> Function() action) async {
     setState(() => _busy = true);
     try {
@@ -238,14 +283,13 @@ class _InAttesaRowState extends State<_InAttesaRow> {
                   () => marketingContactsState.markOptInYes(c.id)),
             ),
             IconButton(
-              tooltip: 'STOP ricevuto',
+              tooltip: 'STOP / NO ricevuto',
               icon: const Icon(Icons.cancel, size: 24),
               color: palette.error,
               padding: EdgeInsets.zero,
               constraints:
                   const BoxConstraints(minWidth: 36, minHeight: 36),
-              onPressed: () => _act(
-                  () => marketingContactsState.markOptInNo(c.id)),
+              onPressed: () => _askReasonAndReject(context, c),
             ),
             IconButton(
               tooltip: 'Riporta in ⚪ Nuovi (per riprovare soft opt-in)',

@@ -4,6 +4,43 @@ import 'package:flutter/foundation.dart';
 
 /// Stato dei contatti marketing (collection Firestore marketing_contacts).
 /// Caricabile SOLO da utenti staff (Firestore rules bloccano i customer).
+/// Motivo del rifiuto (rejectionReason). Stabilisce se il cliente è
+/// resettabile o no per finalità GDPR.
+class RejectionReason {
+  /// Cliente ha scritto STOP esplicitamente su WhatsApp. NON resettabile.
+  static const String stop = 'stop';
+
+  /// Cliente registrato in app senza spuntare marketing o ha tolto il
+  /// consenso dalle Impostazioni. NON resettabile (scelta esplicita).
+  static const String appDecline = 'app_decline';
+
+  /// 30 giorni senza risposta al soft opt-in → cron auto-mark. Resettabile.
+  static const String noReply30d = 'no_reply_30d';
+
+  /// Operatore ha cliccato STOP manualmente nell'inbox SENZA evidenza
+  /// che il cliente abbia scritto STOP (es. "non risponderà più").
+  /// Resettabile con warning.
+  static const String manualOperator = 'manual_operator';
+
+  /// Record pre-feature, motivo sconosciuto. Resettabile con warning.
+  static const String legacy = 'legacy';
+
+  /// True se il cliente può essere riportato in ⚪ Nuovi.
+  static bool isResettable(String? reason) =>
+      reason == noReply30d || reason == manualOperator || reason == legacy ||
+      reason == null;
+
+  /// Label in chiaro per l'UI.
+  static String label(String? reason) => switch (reason) {
+        stop => 'Cliente ha scritto STOP esplicitamente',
+        appDecline => 'Cliente ha rifiutato il marketing in app',
+        noReply30d => 'Nessuna risposta dopo 30 giorni',
+        manualOperator => 'Marcato come no dall\'operatore',
+        legacy => 'Motivo non tracciato (record vecchio)',
+        _ => 'Motivo non specificato',
+      };
+}
+
 class MarketingContact {
   final String id;
   final String name;
@@ -12,6 +49,7 @@ class MarketingContact {
   final String optInStatus; // 'pending' | 'yes' | 'no'
   final DateTime? optInSentAt;
   final DateTime? optInRepliedAt;
+  final String? rejectionReason; // see RejectionReason.*
   final String source;
   final DateTime? createdAt;
 
@@ -23,6 +61,7 @@ class MarketingContact {
     required this.optInStatus,
     this.optInSentAt,
     this.optInRepliedAt,
+    this.rejectionReason,
     required this.source,
     this.createdAt,
   });
@@ -36,6 +75,7 @@ class MarketingContact {
         optInStatus: (d['optInStatus'] as String?) ?? 'pending',
         optInSentAt: (d['optInSentAt'] as Timestamp?)?.toDate(),
         optInRepliedAt: (d['optInRepliedAt'] as Timestamp?)?.toDate(),
+        rejectionReason: d['rejectionReason'] as String?,
         source: (d['source'] as String?) ?? '',
         createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       );
@@ -116,10 +156,14 @@ class MarketingContactsState extends ChangeNotifier {
   }
 
   /// Operatore conferma "STOP ricevuto" o vuole bloccare il contatto.
-  Future<void> markOptInNo(String contactId) async {
+  /// [reason] e' un valore di RejectionReason.* che determina se il
+  /// contatto sara' resettabile in futuro.
+  Future<void> markOptInNo(String contactId,
+      {String reason = RejectionReason.manualOperator}) async {
     await _db.collection('marketing_contacts').doc(contactId).update({
       'optInStatus': 'no',
       'optInRepliedAt': FieldValue.serverTimestamp(),
+      'rejectionReason': reason,
     });
   }
 
@@ -143,6 +187,7 @@ class MarketingContactsState extends ChangeNotifier {
       'optInStatus': 'pending',
       'optInSentAt': null,
       'optInRepliedAt': null,
+      'rejectionReason': FieldValue.delete(),
     });
   }
 
