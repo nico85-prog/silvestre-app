@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/order.dart';
 import '../../state/orders_state.dart';
+import '../../state/settings_state.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/order_overload.dart';
 import 'operator_order_detail_screen.dart';
 
 /// Storico completo di TUTTI gli ordini (passati e correnti),
@@ -61,9 +63,11 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Storico ordini')),
       body: AnimatedBuilder(
-      animation: ordersState,
+      animation: Listenable.merge([ordersState, settingsState]),
       builder: (context, _) {
         final effectiveFilter = _filterStatus;
+        final overloadedIds = computeOverloadedOrderIds(
+            ordersState.orders, settingsState.settings.dailyOrderLimit);
 
         // Ordini tutti, sortati per data decrescente
         var orders = List<CustomerOrder>.from(ordersState.orders);
@@ -202,8 +206,11 @@ class _OperatorHistoryScreenState extends State<OperatorHistoryScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       itemCount: orders.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, i) =>
-                          _HistoryTile(order: orders[i], palette: palette),
+                      itemBuilder: (context, i) => _HistoryTile(
+                        order: orders[i],
+                        palette: palette,
+                        overloaded: overloadedIds.contains(orders[i].id),
+                      ),
                     ),
             ),
           ],
@@ -220,7 +227,12 @@ String _fmtDate(DateTime d) =>
 class _HistoryTile extends StatelessWidget {
   final CustomerOrder order;
   final SilvestrePalette palette;
-  const _HistoryTile({required this.order, required this.palette});
+  final bool overloaded;
+  const _HistoryTile({
+    required this.order,
+    required this.palette,
+    this.overloaded = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +249,10 @@ class _HistoryTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: palette.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
+          border: Border.all(
+            color: overloaded ? palette.warning : palette.border,
+            width: overloaded ? 1.5 : 1,
+          ),
         ),
         child: Row(
           children: [
@@ -281,6 +296,27 @@ class _HistoryTile extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (overloaded) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: palette.warning.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border:
+                                Border.all(color: palette.warning, width: 1),
+                          ),
+                          child: Text(
+                            'standby order overload',
+                            style: TextStyle(
+                              color: palette.warning,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 2),

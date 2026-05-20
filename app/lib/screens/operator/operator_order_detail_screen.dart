@@ -7,6 +7,7 @@ import '../../services/messaging_service.dart';
 import '../../state/orders_state.dart';
 import '../../state/settings_state.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/order_overload.dart';
 import '../../widgets/photobook_page_preview.dart';
 
 class OperatorOrderDetailScreen extends StatelessWidget {
@@ -21,16 +22,56 @@ class OperatorOrderDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('Ordine ${order.pickupCode}')),
       body: AnimatedBuilder(
-        animation: ordersState,
+        animation: Listenable.merge([ordersState, settingsState]),
         builder: (context, _) {
           final live = ordersState.orders.firstWhere(
             (o) => o.id == order.id,
             orElse: () => order,
           );
+          final overloaded = computeOverloadedOrderIds(
+                  ordersState.orders, settingsState.settings.dailyOrderLimit)
+              .contains(live.id);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               _StatusHeader(order: live, palette: palette),
+              if (overloaded) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: palette.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border:
+                        Border.all(color: palette.warning, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: palette.warning),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('standby order overload',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: palette.warning,
+                                    fontSize: 13)),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Questo ordine è oltre il limite giornaliero (${settingsState.settings.dailyOrderLimit}). Puoi comunque accettarlo e passarlo in lavorazione. Domani la dicitura scomparirà automaticamente.',
+                              style: const TextStyle(
+                                  fontSize: 12, height: 1.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               _Section(title: 'Cliente', palette: palette),
               const SizedBox(height: 8),

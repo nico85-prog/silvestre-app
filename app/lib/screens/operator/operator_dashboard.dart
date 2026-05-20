@@ -3,6 +3,7 @@ import '../../models/order.dart';
 import '../../state/orders_state.dart';
 import '../../state/settings_state.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/order_overload.dart';
 import 'operator_history_screen.dart';
 import 'operator_order_detail_screen.dart';
 
@@ -32,6 +33,7 @@ class OperatorDashboard extends StatelessWidget {
         final dailyLimit = settingsState.settings.dailyOrderLimit;
         final todayCount = today.length;
         final limitReached = todayCount >= dailyLimit;
+        final overloadedIds = computeOverloadedOrderIds(all, dailyLimit);
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -149,7 +151,11 @@ class OperatorDashboard extends StatelessWidget {
                 ),
               )
             else
-              ...today.map((o) => _OrderRow(order: o, palette: palette)),
+              ...today.map((o) => _OrderRow(
+                    order: o,
+                    palette: palette,
+                    overloaded: overloadedIds.contains(o.id),
+                  )),
             const SizedBox(height: 24),
           ],
         );
@@ -329,7 +335,12 @@ class _StatCard extends StatelessWidget {
 class _OrderRow extends StatelessWidget {
   final CustomerOrder order;
   final SilvestrePalette palette;
-  const _OrderRow({required this.order, required this.palette});
+  final bool overloaded;
+  const _OrderRow({
+    required this.order,
+    required this.palette,
+    this.overloaded = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -348,7 +359,12 @@ class _OrderRow extends StatelessWidget {
           decoration: BoxDecoration(
             color: palette.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: palette.border),
+            border: Border.all(
+              color: overloaded
+                  ? palette.warning
+                  : palette.border,
+              width: overloaded ? 1.5 : 1,
+            ),
           ),
           child: Row(
             children: [
@@ -358,12 +374,23 @@ class _OrderRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${order.pickupCode}  •  ${order.customerName ?? order.userId.substring(0, 6)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: palette.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '${order.pickupCode}  •  ${order.customerName ?? order.userId.substring(0, 6)}',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: palette.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (overloaded) ...[
+                          const SizedBox(width: 6),
+                          const _OverloadBadge(),
+                        ],
+                      ],
                     ),
                     Text(
                       '${order.itemCount} articoli • ${_time(order.createdAt)}',
@@ -389,4 +416,37 @@ class _OrderRow extends StatelessWidget {
 
   String _time(DateTime d) =>
       '${d.hour.toString().padLeft(2, "0")}:${d.minute.toString().padLeft(2, "0")}';
+}
+
+class _OverloadBadge extends StatelessWidget {
+  const _OverloadBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: palette.warning.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: palette.warning, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              size: 12, color: palette.warning),
+          const SizedBox(width: 3),
+          Text(
+            'standby order overload',
+            style: TextStyle(
+              color: palette.warning,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
