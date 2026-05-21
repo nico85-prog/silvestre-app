@@ -84,6 +84,96 @@ class OperatorOrderDetailScreen extends StatelessWidget {
                   _Row(Icons.tag, 'User ID', live.userId.substring(0, 8)),
                 ],
               ),
+              // Consegna: pickup (default, nessun banner) o shipping (banner)
+              if (live.deliveryMethod == DeliveryMethod.shipping &&
+                  live.shippingAddress != null) ...[
+                const SizedBox(height: 20),
+                _Section(
+                    title: 'Spedizione a domicilio', palette: palette),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: palette.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: palette.primary.withValues(alpha: 0.4),
+                        width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.local_shipping,
+                              color: palette.primary, size: 22),
+                          const SizedBox(width: 10),
+                          Text('SPEDIZIONE A DOMICILIO',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: palette.primary,
+                                  fontSize: 12,
+                                  letterSpacing: 0.5)),
+                          const Spacer(),
+                          Text('+ € ${live.shippingCost.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: palette.primary,
+                                  fontSize: 14)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        live.shippingAddress!.fullName,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: palette.textPrimary,
+                            fontSize: 15),
+                      ),
+                      Text(
+                        live.shippingAddress!.phone,
+                        style: TextStyle(
+                            color: palette.textSecondary,
+                            fontFamily: 'Consolas',
+                            fontSize: 13),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${live.shippingAddress!.street} '
+                        '${live.shippingAddress!.streetNumber}',
+                        style: TextStyle(
+                            color: palette.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '${live.shippingAddress!.zipCode} '
+                        '${live.shippingAddress!.city} '
+                        '(${live.shippingAddress!.province})',
+                        style: TextStyle(
+                            color: palette.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      if ((live.shippingAddress!.notes ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text('NOTE CONSEGNA',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: palette.textSecondary,
+                                letterSpacing: 1.2)),
+                        const SizedBox(height: 2),
+                        Text(live.shippingAddress!.notes!,
+                            style: TextStyle(
+                                color: palette.textPrimary,
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic)),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
               // Richiesta personalizzata: titolo + descrizione + foto allegate
               if (live.isCustomRequest) ...[
                 const SizedBox(height: 20),

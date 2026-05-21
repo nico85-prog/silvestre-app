@@ -42,6 +42,20 @@ class OperatorSettingsScreen extends StatelessWidget {
               palette: palette,
             ),
             const SizedBox(height: 18),
+            _SectionTitle('Costo spedizione', palette: palette),
+            const SizedBox(height: 4),
+            Text(
+              'Costo aggiuntivo applicato quando il cliente sceglie '
+              '"Spedisci a domicilio" al checkout. Si applica uguale '
+              'in tutta Italia.',
+              style: TextStyle(fontSize: 12, color: palette.textSecondary),
+            ),
+            const SizedBox(height: 10),
+            _ShippingCostCard(
+                value: s.shippingCost,
+                onChanged: (v) => settingsState.updateShippingCost(v),
+                palette: palette),
+            const SizedBox(height: 18),
             _SectionTitle('Allerta ritardi', palette: palette),
             const SizedBox(height: 8),
             _NumberCard(
@@ -255,6 +269,107 @@ class _ExportContactsButtonState extends State<_ExportContactsButton> {
                   : '📥 SCARICA CONTATTI (.csv)',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Input numerico per il costo spedizione (€), con step ±0.50.
+class _ShippingCostCard extends StatefulWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+  final SilvestrePalette palette;
+  const _ShippingCostCard({
+    required this.value,
+    required this.onChanged,
+    required this.palette,
+  });
+
+  @override
+  State<_ShippingCostCard> createState() => _ShippingCostCardState();
+}
+
+class _ShippingCostCardState extends State<_ShippingCostCard> {
+  late final TextEditingController _ctrl =
+      TextEditingController(text: widget.value.toStringAsFixed(2));
+
+  @override
+  void didUpdateWidget(covariant _ShippingCostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _ctrl.text = widget.value.toStringAsFixed(2);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final raw = _ctrl.text.replaceAll(',', '.').trim();
+    final v = double.tryParse(raw);
+    if (v == null || v < 0) {
+      _ctrl.text = widget.value.toStringAsFixed(2);
+      return;
+    }
+    widget.onChanged(double.parse(v.toStringAsFixed(2)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.local_shipping_outlined, color: palette.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Costo (€)',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: palette.textSecondary,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                TextField(
+                  controller: _ctrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    suffixText: '€',
+                  ),
+                  onSubmitted: (_) => _commit(),
+                  onTapOutside: (_) => _commit(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline),
+            onPressed: widget.value <= 0
+                ? null
+                : () => widget.onChanged(
+                    double.parse((widget.value - 0.5).clamp(0, 999).toStringAsFixed(2))),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: () => widget.onChanged(
+                double.parse((widget.value + 0.5).toStringAsFixed(2))),
           ),
         ],
       ),

@@ -317,6 +317,35 @@ class _HistoryTile extends StatelessWidget {
                           ),
                         ),
                       ],
+                      if (order.deliveryMethod == DeliveryMethod.shipping) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: palette.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border:
+                                Border.all(color: palette.primary, width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.local_shipping,
+                                  size: 10, color: palette.primary),
+                              const SizedBox(width: 3),
+                              Text(
+                                'SPEDIZIONE',
+                                style: TextStyle(
+                                  color: palette.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (order.isPendingBankTransfer) ...[
                         const SizedBox(width: 6),
                         Container(
