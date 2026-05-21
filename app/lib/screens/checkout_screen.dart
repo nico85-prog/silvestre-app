@@ -213,7 +213,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             selected: _delivery == DeliveryMethod.pickup,
             onTap: () => setState(() => _delivery = DeliveryMethod.pickup),
             palette: palette,
-            subtitle: 'Gratis · Via V. Emanuele III, 205 — Frattamaggiore (NA)',
+            subtitle:
+                'Senza spese di spedizione · Via V. Emanuele III, 205 — '
+                'Frattamaggiore (NA)',
           ),
           _DeliveryTile(
             method: DeliveryMethod.shipping,
@@ -221,8 +223,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             onTap: () =>
                 setState(() => _delivery = DeliveryMethod.shipping),
             palette: palette,
-            subtitle: '+ € ${settingsState.settings.shippingCost.toStringAsFixed(2)} '
-                'corriere in tutta Italia',
+            subtitle:
+                'Spedizione corriere in tutta Italia '
+                '(+ € ${settingsState.settings.shippingCost.toStringAsFixed(2)})',
           ),
           if (_delivery == DeliveryMethod.shipping) ...[
             const SizedBox(height: 12),

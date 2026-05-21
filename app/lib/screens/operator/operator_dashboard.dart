@@ -7,6 +7,7 @@ import '../../utils/order_overload.dart';
 import 'operator_history_screen.dart';
 import 'operator_order_detail_screen.dart';
 import 'operator_promotion_screen.dart';
+import 'operator_shipping_screen.dart';
 
 class OperatorDashboard extends StatelessWidget {
   const OperatorDashboard({super.key});
@@ -76,74 +77,65 @@ class OperatorDashboard extends StatelessWidget {
                     'Ordini in lavorazione da oltre ${lateHours}h. Tocca "Ordini" per gestirli.',
               ),
             const SizedBox(height: 8),
-            // Responsive: 4 cards/row se larghezza >= 900 (PC/tablet landscape),
-            // 2 cards/row altrimenti (mobile/finestra stretta).
+            // Layout fisso 4+4+2 quando schermo abbastanza largo,
+            // altrimenti collassa a 2 cols per mobile.
             LayoutBuilder(builder: (ctx, c) {
               final w = c.maxWidth;
-              // Responsive: piu cards per riga su schermi piu larghi
-              final cols = w >= 1100
-                  ? 4
-                  : w >= 700
-                      ? 3
-                      : 2;
-              return GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: cols,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: cols == 4 ? 1.15 : (cols == 3 ? 1.15 : 1.1),
-                children: [
-                  for (final s in const [
-                    OrderStatus.submitted,
-                    OrderStatus.inProduction,
-                    OrderStatus.readyForPickup,
-                    OrderStatus.pickedUp,
-                    OrderStatus.quoteRequested,
-                    OrderStatus.quoted,
-                    OrderStatus.cancelled,
-                  ])
-                    _StatCard(
-                      label: s.label,
-                      value:
-                          '${all.where((o) => o.status == s).length}',
-                      sub: _subFor(s),
-                      icon: s.icon,
-                      color: _colorFor(s),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => OperatorHistoryScreen(
-                                  initialFilter: s,
-                                )),
-                      ),
-                    ),
-                  _StatCard(
-                    label: 'Storico',
-                    value: '${ordersState.orders.length}',
-                    sub: 'Lista completa di tutti gli ordini con ricerca e filtri',
-                    icon: Icons.history,
-                    color: const Color(0xFF1976D2),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const OperatorHistoryScreen()),
-                    ),
-                  ),
-                  _StatCard(
-                    label: 'Crea Promozione',
-                    value: '✉',
-                    sub: 'Invia offerte ai clienti opted-in via Push / Email / WhatsApp',
-                    icon: Icons.campaign,
-                    color: const Color(0xFFF47521),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const OperatorPromotionScreen()),
-                    ),
-                  ),
-                ],
-              );
+              final wide = w >= 760; // 4 colonne possibili
+              // Card ridotte: aspect ratio piu' alto = card piu' basse
+              final ratio = wide ? 1.7 : 1.45;
+
+              // Card per riga 1 (status workflow normale)
+              final row1 = [
+                _statusCard(context, OrderStatus.submitted, all,
+                    overloadedIds),
+                _statusCard(context, OrderStatus.inProduction, all,
+                    overloadedIds),
+                _statusCard(context, OrderStatus.readyForPickup, all,
+                    overloadedIds),
+                _statusCard(context, OrderStatus.pickedUp, all,
+                    overloadedIds),
+              ];
+              // Card per riga 2 (status quote + spedizioni + promozione)
+              final row2 = [
+                _statusCard(context, OrderStatus.quoteRequested, all,
+                    overloadedIds),
+                _statusCard(context, OrderStatus.quoted, all,
+                    overloadedIds),
+                _shippingCard(context, all),
+                _promoCard(context),
+              ];
+              // Card per riga 3 (cancelled + storico)
+              final row3 = [
+                _statusCard(context, OrderStatus.cancelled, all,
+                    overloadedIds),
+                _historyCard(context),
+              ];
+
+              Widget rowGrid(List<Widget> children, {int cols = 4}) =>
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: cols,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: ratio,
+                    children: children,
+                  );
+
+              if (wide) {
+                return Column(
+                  children: [
+                    rowGrid(row1, cols: 4),
+                    const SizedBox(height: 10),
+                    rowGrid(row2, cols: 4),
+                    const SizedBox(height: 10),
+                    rowGrid(row3, cols: 4),
+                  ],
+                );
+              }
+              // Mobile: tutto in 2 colonne, ordine come da spec
+              return rowGrid([...row1, ...row2, ...row3], cols: 2);
             }),
             const SizedBox(height: 24),
             Text('Ordini di oggi',
@@ -187,6 +179,73 @@ class OperatorDashboard extends StatelessWidget {
       'venerdì', 'sabato', 'domenica',
     ];
     return '${giorni[d.weekday - 1]} ${d.day} ${_months[d.month - 1]} ${d.year}';
+  }
+
+  /// Card stato ordine (Ricevuto, In lavorazione, ecc.)
+  Widget _statusCard(BuildContext context, OrderStatus s,
+      List<CustomerOrder> all, Set<String> overloadedIds) {
+    return _StatCard(
+      label: s.label,
+      value: '${all.where((o) => o.status == s).length}',
+      sub: _subFor(s),
+      icon: s.icon,
+      color: _colorFor(s),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => OperatorHistoryScreen(initialFilter: s)),
+      ),
+    );
+  }
+
+  /// Card "Spedizioni" — conta ordini con deliveryMethod=shipping
+  /// non ancora ritirati/cancellati.
+  Widget _shippingCard(BuildContext context, List<CustomerOrder> all) {
+    final n = all.where((o) =>
+        o.deliveryMethod == DeliveryMethod.shipping &&
+        o.status != OrderStatus.cancelled &&
+        o.status != OrderStatus.pickedUp).length;
+    return _StatCard(
+      label: 'Spedizioni',
+      value: '$n',
+      sub: 'Ordini con spedizione a domicilio da preparare',
+      icon: Icons.local_shipping,
+      color: const Color(0xFF1976D2),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => const OperatorShippingScreen()),
+      ),
+    );
+  }
+
+  Widget _promoCard(BuildContext context) {
+    return _StatCard(
+      label: 'Crea Promozione',
+      value: '✉',
+      sub: 'Invia offerte ai clienti opted-in via WhatsApp',
+      icon: Icons.campaign,
+      color: const Color(0xFFF47521),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => const OperatorPromotionScreen()),
+      ),
+    );
+  }
+
+  Widget _historyCard(BuildContext context) {
+    return _StatCard(
+      label: 'Storico',
+      value: '${ordersState.orders.length}',
+      sub: 'Lista completa di tutti gli ordini con ricerca e filtri',
+      icon: Icons.history,
+      color: const Color(0xFF1976D2),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const OperatorHistoryScreen()),
+      ),
+    );
   }
 }
 
