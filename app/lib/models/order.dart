@@ -13,6 +13,78 @@ enum OrderStatus {
   cancelled,
 }
 
+/// Metodo di consegna scelto dal cliente.
+enum DeliveryMethod {
+  pickup,    // Ritiro in negozio (default, gratis)
+  shipping,  // Spedizione a domicilio in Italia (costo aggiuntivo configurabile)
+}
+
+extension DeliveryMethodX on DeliveryMethod {
+  String get key => name;
+
+  String get label => switch (this) {
+        DeliveryMethod.pickup => 'Ritiro in negozio',
+        DeliveryMethod.shipping => 'Spedisci a domicilio',
+      };
+
+  static DeliveryMethod fromKey(String? k) =>
+      DeliveryMethod.values.firstWhere(
+        (m) => m.name == k,
+        orElse: () => DeliveryMethod.pickup,
+      );
+}
+
+/// Indirizzo di spedizione (solo se DeliveryMethod.shipping).
+/// Nome, cognome, telefono pre-compilati dal profilo (non editabili).
+class ShippingAddress {
+  final String fullName;     // dal profilo (read-only)
+  final String phone;        // dal profilo (read-only)
+  final String street;       // editabile
+  final String streetNumber; // editabile
+  final String zipCode;      // editabile
+  final String city;         // editabile
+  final String province;     // editabile, 2 lettere (es. NA)
+  final String? notes;       // opzionale (citofono, piano, orari)
+
+  const ShippingAddress({
+    required this.fullName,
+    required this.phone,
+    required this.street,
+    required this.streetNumber,
+    required this.zipCode,
+    required this.city,
+    required this.province,
+    this.notes,
+  });
+
+  Map<String, dynamic> toFirestore() => {
+        'fullName': fullName,
+        'phone': phone,
+        'street': street,
+        'streetNumber': streetNumber,
+        'zipCode': zipCode,
+        'city': city,
+        'province': province,
+        if (notes != null && notes!.isNotEmpty) 'notes': notes,
+      };
+
+  factory ShippingAddress.fromFirestore(Map<String, dynamic> d) =>
+      ShippingAddress(
+        fullName: (d['fullName'] as String?) ?? '',
+        phone: (d['phone'] as String?) ?? '',
+        street: (d['street'] as String?) ?? '',
+        streetNumber: (d['streetNumber'] as String?) ?? '',
+        zipCode: (d['zipCode'] as String?) ?? '',
+        city: (d['city'] as String?) ?? '',
+        province: (d['province'] as String?) ?? '',
+        notes: d['notes'] as String?,
+      );
+
+  /// Indirizzo formattato su una riga per UI compatta.
+  String get oneLine =>
+      '$street $streetNumber, $zipCode $city ($province)';
+}
+
 extension OrderStatusX on OrderStatus {
   String get key => name;
 
@@ -77,6 +149,11 @@ class CustomerOrder {
   final double? quoteAmount;
   final String? quoteEta;
   final String? quoteOperatorNote; // {method, transactionId?, paidNow, lastFour?}
+  // Consegna: pickup (default) o shipping. Se shipping, shippingAddress
+  // contiene l'indirizzo + shippingCost il costo extra applicato.
+  final DeliveryMethod deliveryMethod;
+  final ShippingAddress? shippingAddress;
+  final double shippingCost; // 0 per pickup
 
   const CustomerOrder({
     required this.id,
@@ -97,6 +174,9 @@ class CustomerOrder {
     this.quoteAmount,
     this.quoteEta,
     this.quoteOperatorNote,
+    this.deliveryMethod = DeliveryMethod.pickup,
+    this.shippingAddress,
+    this.shippingCost = 0,
   });
 
   bool get isCustomRequest => customRequestTitle != null;
@@ -121,6 +201,9 @@ class CustomerOrder {
         quoteAmount: quoteAmount,
         quoteEta: quoteEta,
         quoteOperatorNote: quoteOperatorNote,
+        deliveryMethod: deliveryMethod,
+        shippingAddress: shippingAddress,
+        shippingCost: shippingCost,
       );
 
   int get itemCount => items.fold(0, (s, i) => s + i.quantity);
@@ -153,6 +236,10 @@ class CustomerOrder {
         'quoteAmount': quoteAmount,
         'quoteEta': quoteEta,
         'quoteOperatorNote': quoteOperatorNote,
+        'deliveryMethod': deliveryMethod.name,
+        if (shippingAddress != null)
+          'shippingAddress': shippingAddress!.toFirestore(),
+        if (shippingCost > 0) 'shippingCost': shippingCost,
       };
 
   factory CustomerOrder.fromFirestore(String id, Map<String, dynamic> data) {
@@ -179,6 +266,13 @@ class CustomerOrder {
       quoteAmount: (data['quoteAmount'] as num?)?.toDouble(),
       quoteEta: data['quoteEta'] as String?,
       quoteOperatorNote: data['quoteOperatorNote'] as String?,
+      deliveryMethod:
+          DeliveryMethodX.fromKey(data['deliveryMethod'] as String?),
+      shippingAddress: (data['shippingAddress'] as Map?) == null
+          ? null
+          : ShippingAddress.fromFirestore(
+              (data['shippingAddress'] as Map).cast<String, dynamic>()),
+      shippingCost: (data['shippingCost'] as num?)?.toDouble() ?? 0,
     );
   }
 }

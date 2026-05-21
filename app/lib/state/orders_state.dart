@@ -73,6 +73,9 @@ class OrdersState extends ChangeNotifier {
     String? customerName,
     String? customerPhone,
     PaymentResult? payment,
+    DeliveryMethod deliveryMethod = DeliveryMethod.pickup,
+    ShippingAddress? shippingAddress,
+    double shippingCost = 0,
   }) async {
     // Bonifico: usa la causale (= pickupCode pre-generato dalla sheet) per
     // far combaciare l'ordine con quello che il cliente ha scritto sul
@@ -81,18 +84,22 @@ class OrdersState extends ChangeNotifier {
             payment?.transactionId != null)
         ? payment!.transactionId!
         : 'SLV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final subtotal = items.fold<double>(0, (s, i) => s + i.lineTotal);
     final order = CustomerOrder(
       id: '',
       userId: userId,
       items: items,
       status: OrderStatus.submitted,
       pickupCode: pickupCode,
-      total: items.fold(0, (s, i) => s + i.lineTotal),
+      total: subtotal + shippingCost,
       createdAt: DateTime.now(),
       customerNote: customerNote,
       customerName: customerName,
       customerPhone: customerPhone,
       payment: payment?.toFirestore(),
+      deliveryMethod: deliveryMethod,
+      shippingAddress: shippingAddress,
+      shippingCost: shippingCost,
     );
     await _db.collection('orders').add(order.toFirestore());
     return pickupCode;

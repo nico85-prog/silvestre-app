@@ -451,8 +451,8 @@ class _CartScreenState extends State<CartScreen> {
     final user = authState.currentUser;
     if (user == null) return;
 
-    // Step 1: open checkout to pick payment method
-    final paymentResult = await Navigator.push<PaymentResult>(
+    // Step 1: open checkout to pick payment + delivery
+    final checkoutResult = await Navigator.push<CheckoutResult>(
       context,
       MaterialPageRoute(
         builder: (_) => CheckoutScreen(
@@ -462,7 +462,8 @@ class _CartScreenState extends State<CartScreen> {
         ),
       ),
     );
-    if (paymentResult == null || !mounted) return;
+    if (checkoutResult == null || !mounted) return;
+    final paymentResult = checkoutResult.payment;
 
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
     showDialog(
@@ -484,6 +485,9 @@ class _CartScreenState extends State<CartScreen> {
         customerName: user.displayName,
         customerPhone: user.phone,
         payment: paymentResult,
+        deliveryMethod: checkoutResult.deliveryMethod,
+        shippingAddress: checkoutResult.shippingAddress,
+        shippingCost: checkoutResult.shippingCost,
       );
       // FIX: clear cart SUBITO dopo submit success, prima del dialog.
       // Evita duplicati se dialog fail to mount o context perso.

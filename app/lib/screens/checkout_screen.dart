@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../models/order.dart'
+    show DeliveryMethod, DeliveryMethodX, ShippingAddress;
 import '../models/payment.dart';
 import '../services/cloudinary_service.dart';
 import '../state/auth_state.dart';
+import '../state/settings_state.dart';
 import '../theme/app_theme.dart';
+
+/// Risultato del checkout: contiene payment + opzionalmente delivery info.
+class CheckoutResult {
+  final PaymentResult payment;
+  final DeliveryMethod deliveryMethod;
+  final ShippingAddress? shippingAddress;
+  final double shippingCost;
+
+  const CheckoutResult({
+    required this.payment,
+    required this.deliveryMethod,
+    this.shippingAddress,
+    this.shippingCost = 0,
+  });
+}
 
 class CheckoutScreen extends StatefulWidget {
   final double total;
@@ -23,36 +41,83 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  PaymentMethod _selected = PaymentMethod.inStore;
+  PaymentMethod _selected = PaymentMethod.bankTransfer;
+  DeliveryMethod _delivery = DeliveryMethod.pickup;
+
+  // Indirizzo spedizione (compilato solo se _delivery == shipping)
+  final _streetCtrl = TextEditingController();
+  final _streetNumberCtrl = TextEditingController();
+  final _zipCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _provinceCtrl = TextEditingController();
+  final _shippingNotesCtrl = TextEditingController();
+
   late final TextEditingController _noteController =
       TextEditingController(text: widget.customerNote ?? '');
 
   @override
   void dispose() {
     _noteController.dispose();
+    _streetCtrl.dispose();
+    _streetNumberCtrl.dispose();
+    _zipCtrl.dispose();
+    _cityCtrl.dispose();
+    _provinceCtrl.dispose();
+    _shippingNotesCtrl.dispose();
     super.dispose();
   }
 
-  /// Caparra: 20% del totale, ma minimo kDepositMinAmount per evitare
-  /// transazioni sotto soglia che gli operatori carta rifiutano.
+  double get _shippingCost =>
+      _delivery == DeliveryMethod.shipping
+          ? settingsState.settings.shippingCost
+          : 0;
+
+  double get _totalWithShipping => widget.total + _shippingCost;
+
+  bool get _shippingValid =>
+      _delivery == DeliveryMethod.pickup ||
+      (_streetCtrl.text.trim().isNotEmpty &&
+          _streetNumberCtrl.text.trim().isNotEmpty &&
+          _zipCtrl.text.trim().length == 5 &&
+          _cityCtrl.text.trim().isNotEmpty &&
+          _provinceCtrl.text.trim().length == 2);
+
+  /// PaymentMethod filtrati: se Spedisci, "Paga in negozio" non ha senso.
+  List<PaymentMethod> get _allowedPaymentMethods => _delivery ==
+          DeliveryMethod.shipping
+      ? PaymentMethod.values
+          .where((m) => m != PaymentMethod.inStore)
+          .toList()
+      : PaymentMethod.values.toList();
+
+  /// Caparra: 20% del totale (incluso shipping), ma minimo
+  /// kDepositMinAmount per evitare transazioni sotto soglia.
   double get _depositAmount {
-    final raw = widget.total * kDepositPercentage;
+    final base = _totalWithShipping;
+    final raw = base * kDepositPercentage;
     final clamped = raw < kDepositMinAmount ? kDepositMinAmount : raw;
-    // Mai chiedere caparra maggiore del totale (per ordini molto piccoli)
-    final capped = clamped > widget.total ? widget.total : clamped;
+    final capped = clamped > base ? base : clamped;
     return double.parse(capped.toStringAsFixed(2));
   }
 
   double get _balanceAmount =>
-      double.parse((widget.total - _depositAmount).toStringAsFixed(2));
+      double.parse((_totalWithShipping - _depositAmount).toStringAsFixed(2));
 
   Future<void> _proceed() async {
+    if (!_shippingValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Compila tutti i campi dell\'indirizzo di spedizione.')),
+      );
+      return;
+    }
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    final amount = _totalWithShipping;
     PaymentResult? result;
 
     switch (_selected) {
       case PaymentMethod.inStore:
-        // Caparra 20% via bonifico istantaneo (unico metodo gratuito)
         result = await showModalBottomSheet<PaymentResult>(
           context: context,
           isScrollControlled: true,
@@ -60,9 +125,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           builder: (_) => _DepositSheet(
             depositAmount: _depositAmount,
             balanceAmount: _balanceAmount,
-            total: widget.total,
+            total: amount,
             palette: palette,
           ),
+        );
+        break;
+      case PaymentMethod.card:
+        result = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _StripeCardSheet(total: amount, palette: palette),
+        );
+        break;
+      case PaymentMethod.satispay:
+        result = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _SatispaySheet(total: amount, palette: palette),
         );
         break;
       case PaymentMethod.bankTransfer:
@@ -71,14 +152,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) =>
-              _BankTransferSheet(total: widget.total, palette: palette),
+              _BankTransferSheet(total: amount, palette: palette),
         );
         break;
     }
 
     if (result != null && mounted) {
       widget.onNoteChanged(_noteController.text);
-      Navigator.pop(context, result);
+      final user = authState.currentUser;
+      ShippingAddress? shipping;
+      if (_delivery == DeliveryMethod.shipping && user != null) {
+        shipping = ShippingAddress(
+          fullName: user.displayName,
+          phone: user.phone ?? '',
+          street: _streetCtrl.text.trim(),
+          streetNumber: _streetNumberCtrl.text.trim(),
+          zipCode: _zipCtrl.text.trim(),
+          city: _cityCtrl.text.trim(),
+          province: _provinceCtrl.text.trim().toUpperCase(),
+          notes: _shippingNotesCtrl.text.trim().isEmpty
+              ? null
+              : _shippingNotesCtrl.text.trim(),
+        );
+      }
+      Navigator.pop(
+        context,
+        CheckoutResult(
+          payment: result,
+          deliveryMethod: _delivery,
+          shippingAddress: shipping,
+          shippingCost: _shippingCost,
+        ),
+      );
     }
   }
 
@@ -87,16 +192,57 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final palette = Theme.of(context).extension<SilvestrePalette>()!;
     final textTheme = Theme.of(context).textTheme;
 
+    final allowedMethods = _allowedPaymentMethods;
+    // Se il metodo selezionato non e' piu' permesso, fallback su bankTransfer
+    if (!allowedMethods.contains(_selected)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selected = PaymentMethod.bankTransfer);
+      });
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text('Come vuoi ricevere il tuo ordine?',
+              style: textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          _DeliveryTile(
+            method: DeliveryMethod.pickup,
+            selected: _delivery == DeliveryMethod.pickup,
+            onTap: () => setState(() => _delivery = DeliveryMethod.pickup),
+            palette: palette,
+            subtitle: 'Gratis · Via V. Emanuele III, 205 — Frattamaggiore (NA)',
+          ),
+          _DeliveryTile(
+            method: DeliveryMethod.shipping,
+            selected: _delivery == DeliveryMethod.shipping,
+            onTap: () =>
+                setState(() => _delivery = DeliveryMethod.shipping),
+            palette: palette,
+            subtitle: '+ € ${settingsState.settings.shippingCost.toStringAsFixed(2)} '
+                'corriere in tutta Italia',
+          ),
+          if (_delivery == DeliveryMethod.shipping) ...[
+            const SizedBox(height: 12),
+            _ShippingForm(
+              palette: palette,
+              streetCtrl: _streetCtrl,
+              streetNumberCtrl: _streetNumberCtrl,
+              zipCtrl: _zipCtrl,
+              cityCtrl: _cityCtrl,
+              provinceCtrl: _provinceCtrl,
+              notesCtrl: _shippingNotesCtrl,
+              onFieldChanged: () => setState(() {}),
+            ),
+          ],
+          const SizedBox(height: 22),
           Text('Come vuoi pagare?',
               style: textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          for (final m in PaymentMethod.values)
+          for (final m in allowedMethods)
             _MethodTile(
               method: m,
               selected: _selected == m,
@@ -116,42 +262,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.border),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.storefront, color: palette.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Ritiro in negozio',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: palette.textPrimary)),
-                      Text(
-                        'Via V. Emanuele III, 205 — Frattamaggiore',
-                        style: TextStyle(
-                            color: palette.textSecondary, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
       bottomNavigationBar: SafeArea(
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
           decoration: BoxDecoration(
             color: palette.background,
             border: Border(top: BorderSide(color: palette.border)),
@@ -161,10 +276,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Row(
                 children: [
-                  Text('Totale',
-                      style: TextStyle(color: palette.textSecondary)),
+                  Text('Subtotale',
+                      style: TextStyle(
+                          color: palette.textSecondary, fontSize: 13)),
                   const Spacer(),
                   Text('€ ${widget.total.toStringAsFixed(2)}',
+                      style: TextStyle(
+                          color: palette.textPrimary, fontSize: 13)),
+                ],
+              ),
+              if (_shippingCost > 0) ...[
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text('Spedizione',
+                        style: TextStyle(
+                            color: palette.textSecondary, fontSize: 13)),
+                    const Spacer(),
+                    Text('€ ${_shippingCost.toStringAsFixed(2)}',
+                        style: TextStyle(
+                            color: palette.textPrimary, fontSize: 13)),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text('Totale',
+                      style: TextStyle(
+                          color: palette.textSecondary,
+                          fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Text('€ ${_totalWithShipping.toStringAsFixed(2)}',
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: palette.textPrimary,
@@ -189,12 +332,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  String get _ctaLabel => switch (_selected) {
-        PaymentMethod.inStore =>
-            'Versa caparra € ${_depositAmount.toStringAsFixed(2)} e conferma',
-        PaymentMethod.bankTransfer =>
-            'Versa € ${widget.total.toStringAsFixed(2)} con bonifico',
-      };
+  String get _ctaLabel {
+    final amt = _totalWithShipping.toStringAsFixed(2);
+    return switch (_selected) {
+      PaymentMethod.inStore =>
+          'Versa caparra € ${_depositAmount.toStringAsFixed(2)} e conferma',
+      PaymentMethod.card => 'Paga € $amt con carta',
+      PaymentMethod.satispay => 'Paga € $amt con Satispay',
+      PaymentMethod.bankTransfer => 'Versa € $amt con bonifico',
+    };
+  }
 }
 
 class _MethodTile extends StatelessWidget {
@@ -210,11 +357,15 @@ class _MethodTile extends StatelessWidget {
   });
 
   IconData get _icon => switch (method) {
+        PaymentMethod.card => Icons.credit_card,
+        PaymentMethod.satispay => Icons.smartphone,
         PaymentMethod.bankTransfer => Icons.account_balance,
         PaymentMethod.inStore => Icons.storefront_outlined,
       };
 
   Color get _accent => switch (method) {
+        PaymentMethod.card => const Color(0xFF635BFF), // Stripe purple
+        PaymentMethod.satispay => const Color(0xFFEB4F2A), // Satispay orange
         PaymentMethod.bankTransfer => const Color(0xFF2E7D32), // 0% fee green
         PaymentMethod.inStore => palette.primary,
       };
@@ -296,15 +447,42 @@ class _DepositSheet extends StatefulWidget {
 }
 
 class _DepositSheetState extends State<_DepositSheet> {
+  PaymentMethod _depositVia = PaymentMethod.card;
+
   Future<void> _payDeposit() async {
     final palette = widget.palette;
-    final subResult = await showModalBottomSheet<PaymentResult>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) =>
-          _BankTransferSheet(total: widget.depositAmount, palette: palette),
-    );
+    PaymentResult? subResult;
+    switch (_depositVia) {
+      case PaymentMethod.card:
+        subResult = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) =>
+              _StripeCardSheet(total: widget.depositAmount, palette: palette),
+        );
+        break;
+      case PaymentMethod.satispay:
+        subResult = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) =>
+              _SatispaySheet(total: widget.depositAmount, palette: palette),
+        );
+        break;
+      case PaymentMethod.bankTransfer:
+        subResult = await showModalBottomSheet<PaymentResult>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _BankTransferSheet(
+              total: widget.depositAmount, palette: palette),
+        );
+        break;
+      case PaymentMethod.inStore:
+        return; // non valido per caparra
+    }
     if (subResult == null) return;
     if (!mounted) return;
     Navigator.pop(
@@ -313,8 +491,9 @@ class _DepositSheetState extends State<_DepositSheet> {
         method: PaymentMethod.inStore,
         paidNow: false,
         depositAmount: widget.depositAmount,
-        depositMethod: PaymentMethod.bankTransfer,
+        depositMethod: _depositVia,
         depositTransactionId: subResult.transactionId,
+        lastFour: subResult.lastFour,
         proofUrl: subResult.proofUrl,
       ),
     );
@@ -380,6 +559,32 @@ class _DepositSheetState extends State<_DepositSheet> {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+          Text("Come paghi la caparra?",
+              style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: palette.textPrimary)),
+          const SizedBox(height: 8),
+          _DepositMethodTile(
+            method: PaymentMethod.card,
+            selected: _depositVia == PaymentMethod.card,
+            onTap: () => setState(() => _depositVia = PaymentMethod.card),
+            palette: palette,
+          ),
+          _DepositMethodTile(
+            method: PaymentMethod.satispay,
+            selected: _depositVia == PaymentMethod.satispay,
+            onTap: () =>
+                setState(() => _depositVia = PaymentMethod.satispay),
+            palette: palette,
+          ),
+          _DepositMethodTile(
+            method: PaymentMethod.bankTransfer,
+            selected: _depositVia == PaymentMethod.bankTransfer,
+            onTap: () =>
+                setState(() => _depositVia = PaymentMethod.bankTransfer),
+            palette: palette,
+          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -389,9 +594,9 @@ class _DepositSheetState extends State<_DepositSheet> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              icon: const Icon(Icons.account_balance),
+              icon: const Icon(Icons.lock),
               label: Text(
-                  "Versa EUR ${widget.depositAmount.toStringAsFixed(2)} via bonifico"),
+                  "Versa EUR ${widget.depositAmount.toStringAsFixed(2)} di caparra"),
               onPressed: _payDeposit,
             ),
           ),
@@ -773,6 +978,688 @@ class _BankTransferSheetState extends State<_BankTransferSheet> {
               tooltip: 'Copia',
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tile per scelta consegna: Ritiro in negozio / Spedisci a domicilio.
+class _DeliveryTile extends StatelessWidget {
+  final DeliveryMethod method;
+  final bool selected;
+  final VoidCallback onTap;
+  final SilvestrePalette palette;
+  final String subtitle;
+  const _DeliveryTile({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+    required this.palette,
+    required this.subtitle,
+  });
+
+  IconData get _icon => method == DeliveryMethod.pickup
+      ? Icons.storefront
+      : Icons.local_shipping_outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = palette.primary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: selected
+                ? accent.withValues(alpha: 0.08)
+                : palette.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? accent : palette.border,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(_icon, color: accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(method.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: palette.textPrimary,
+                        )),
+                    Text(subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: palette.textSecondary,
+                        )),
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? accent : palette.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Form per dettagli di spedizione (visibile solo se _delivery=shipping).
+/// Nome + telefono pre-compilati dal profilo, read-only.
+/// Indirizzo editabile.
+class _ShippingForm extends StatelessWidget {
+  final SilvestrePalette palette;
+  final TextEditingController streetCtrl;
+  final TextEditingController streetNumberCtrl;
+  final TextEditingController zipCtrl;
+  final TextEditingController cityCtrl;
+  final TextEditingController provinceCtrl;
+  final TextEditingController notesCtrl;
+  final VoidCallback onFieldChanged;
+
+  const _ShippingForm({
+    required this.palette,
+    required this.streetCtrl,
+    required this.streetNumberCtrl,
+    required this.zipCtrl,
+    required this.cityCtrl,
+    required this.provinceCtrl,
+    required this.notesCtrl,
+    required this.onFieldChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final user = authState.currentUser;
+    final name = user?.displayName ?? '';
+    final phone = user?.phone ?? '';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.local_shipping_outlined, color: palette.primary),
+              const SizedBox(width: 8),
+              Text('Indirizzo di spedizione',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: palette.primary,
+                      fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Read-only: dal profilo utente
+          _readOnlyField(palette, 'Nome completo', name),
+          const SizedBox(height: 8),
+          _readOnlyField(palette, 'Telefono', phone),
+          const SizedBox(height: 12),
+          Text(
+            'I dati anagrafici sono presi dal tuo profilo. Per modificarli '
+            'vai in Account → Profilo.',
+            style: TextStyle(
+                fontSize: 11,
+                color: palette.textSecondary,
+                fontStyle: FontStyle.italic),
+          ),
+          const SizedBox(height: 16),
+          // Editable
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: streetCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Via',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => onFieldChanged(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: streetNumberCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'N°',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => onFieldChanged(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: zipCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'CAP',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    counterText: '',
+                  ),
+                  onChanged: (_) => onFieldChanged(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: cityCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Città',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => onFieldChanged(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: provinceCtrl,
+                  maxLength: 2,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'Pr.',
+                    helperText: 'NA',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    counterText: '',
+                  ),
+                  onChanged: (_) => onFieldChanged(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: notesCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Note consegna (opzionale)',
+              hintText: 'Es. citofono, piano, orari preferiti',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (_) => onFieldChanged(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _readOnlyField(
+      SilvestrePalette palette, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: palette.textSecondary,
+                    fontWeight: FontWeight.w600)),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '(non impostato in profilo)' : value,
+              style: TextStyle(
+                fontSize: 13,
+                color: value.isEmpty
+                    ? palette.error
+                    : palette.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontStyle: value.isEmpty ? FontStyle.italic : null,
+              ),
+            ),
+          ),
+          Icon(Icons.lock_outline,
+              size: 14, color: palette.textSecondary),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sheet pagamento carta (Stripe demo).
+class _StripeCardSheet extends StatefulWidget {
+  final double total;
+  final SilvestrePalette palette;
+  const _StripeCardSheet({required this.total, required this.palette});
+
+  @override
+  State<_StripeCardSheet> createState() => _StripeCardSheetState();
+}
+
+class _StripeCardSheetState extends State<_StripeCardSheet> {
+  final _cardCtrl = TextEditingController();
+  final _expCtrl = TextEditingController();
+  final _cvcCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  bool _processing = false;
+
+  @override
+  void dispose() {
+    _cardCtrl.dispose();
+    _expCtrl.dispose();
+    _cvcCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pay() async {
+    setState(() => _processing = true);
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    final stripped = _cardCtrl.text.replaceAll(' ', '');
+    final last4 = stripped.length >= 4
+        ? stripped.substring(stripped.length - 4)
+        : stripped;
+    Navigator.pop(
+      context,
+      PaymentResult(
+        method: PaymentMethod.card,
+        transactionId: 'demo_ch_${DateTime.now().millisecondsSinceEpoch}',
+        paidNow: true,
+        lastFour: last4,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      decoration: BoxDecoration(
+        color: p.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.credit_card, color: Color(0xFF635BFF)),
+              const SizedBox(width: 8),
+              Text('Paga con carta',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: p.textPrimary)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: p.warning.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('DEMO',
+                    style: TextStyle(
+                        color: p.warning,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+              'Test mode — nessun addebito reale. Per pagamenti live serve account Stripe.',
+              style: TextStyle(fontSize: 11, color: p.textSecondary)),
+          const SizedBox(height: 18),
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Nome sulla carta',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _cardCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Numero carta',
+              hintText: '4242 4242 4242 4242 (test Stripe)',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.credit_card),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _expCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'MM/AA',
+                    hintText: '12/28',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _cvcCtrl,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'CVC',
+                    hintText: '123',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF635BFF),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _processing ? null : _pay,
+              child: _processing
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text('Paga € ${widget.total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock, size: 12, color: p.textSecondary),
+              const SizedBox(width: 4),
+              Text('Sicuro · Powered by Stripe (demo)',
+                  style:
+                      TextStyle(fontSize: 10, color: p.textSecondary)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sheet pagamento Satispay (demo, QR fake).
+class _SatispaySheet extends StatefulWidget {
+  final double total;
+  final SilvestrePalette palette;
+  const _SatispaySheet({required this.total, required this.palette});
+
+  @override
+  State<_SatispaySheet> createState() => _SatispaySheetState();
+}
+
+class _SatispaySheetState extends State<_SatispaySheet> {
+  bool _processing = false;
+
+  Future<void> _confirm() async {
+    setState(() => _processing = true);
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    Navigator.pop(
+      context,
+      PaymentResult(
+        method: PaymentMethod.satispay,
+        transactionId: 'demo_sps_${DateTime.now().millisecondsSinceEpoch}',
+        paidNow: true,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      decoration: BoxDecoration(
+        color: p.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.smartphone, color: Color(0xFFEB4F2A)),
+              const SizedBox(width: 8),
+              Text('Paga con Satispay',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: p.textPrimary)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: p.warning.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('DEMO',
+                    style: TextStyle(
+                        color: p.warning,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border, width: 2),
+            ),
+            child: CustomPaint(painter: _FakeQrPainter()),
+          ),
+          const SizedBox(height: 12),
+          Text('€ ${widget.total.toStringAsFixed(2)}',
+              style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: p.textPrimary)),
+          const SizedBox(height: 4),
+          Text('Apri Satispay → Scansiona QR',
+              style: TextStyle(color: p.textSecondary)),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEB4F2A),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _processing ? null : _confirm,
+              child: _processing
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Ho completato il pagamento',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FakeQrPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.black;
+    final cell = size.width / 21;
+    final pattern = [
+      '111111101010111111100',
+      '100000101101100000100',
+      '101110100110101110100',
+      '101110101110101110100',
+      '101110100000101110100',
+      '100000101110100000100',
+      '111111101010111111100',
+      '000000000110000000000',
+      '110101110011101110100',
+      '011010100110110100110',
+      '101110101010101010101',
+      '011011100110100101110',
+      '110100110011101100100',
+      '000000000110010110110',
+      '111111100110110101010',
+      '100000101011010110101',
+      '101110101101111100100',
+      '101110100110100010110',
+      '101110101010111110100',
+      '100000100110100100010',
+      '111111100110110110110',
+    ];
+    for (int r = 0; r < 21; r++) {
+      for (int c = 0; c < 21; c++) {
+        if (pattern[r][c] == '1') {
+          canvas.drawRect(
+            Rect.fromLTWH(c * cell + 4, r * cell + 4, cell - 1, cell - 1),
+            paint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Tile compatto per scegliere il metodo di pagamento della caparra.
+class _DepositMethodTile extends StatelessWidget {
+  final PaymentMethod method;
+  final bool selected;
+  final VoidCallback onTap;
+  final SilvestrePalette palette;
+  const _DepositMethodTile({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+    required this.palette,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = switch (method) {
+      PaymentMethod.card => const Color(0xFF635BFF),
+      PaymentMethod.satispay => const Color(0xFFEB4F2A),
+      PaymentMethod.bankTransfer => const Color(0xFF2E7D32),
+      PaymentMethod.inStore => palette.primary,
+    };
+    final icon = switch (method) {
+      PaymentMethod.card => Icons.credit_card,
+      PaymentMethod.satispay => Icons.smartphone,
+      PaymentMethod.bankTransfer => Icons.account_balance,
+      PaymentMethod.inStore => Icons.storefront_outlined,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color:
+                selected ? accent.withValues(alpha: 0.08) : palette.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: selected ? accent : palette.border,
+                width: selected ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(method.label,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: palette.textPrimary)),
+              ),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? accent : palette.textSecondary,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

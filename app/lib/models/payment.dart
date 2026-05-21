@@ -1,26 +1,36 @@
 enum PaymentMethod {
-  bankTransfer, // Bonifico Istantaneo (manual verification) — UNICO metodo online
-  inStore,      // Pay at pickup (con caparra 20% via bonifico)
+  card,         // Stripe (online card) — demo backend
+  satispay,     // Satispay — demo backend
+  bankTransfer, // Bonifico Istantaneo (manual verification)
+  inStore,      // Pay at pickup (con caparra 20%) — solo per Ritiro in negozio
 }
 
 extension PaymentMethodX on PaymentMethod {
   String get key => name;
 
   String get label => switch (this) {
+        PaymentMethod.card => 'Carta di credito',
+        PaymentMethod.satispay => 'Satispay',
         PaymentMethod.bankTransfer => 'Bonifico Istantaneo',
         PaymentMethod.inStore => 'Paga in negozio',
       };
 
   String get shortLabel => switch (this) {
+        PaymentMethod.card => 'Carta',
+        PaymentMethod.satispay => 'Satispay',
         PaymentMethod.bankTransfer => 'Bonifico',
         PaymentMethod.inStore => 'In negozio',
       };
 
   String get description => switch (this) {
+        PaymentMethod.card =>
+            'Visa, Mastercard, Amex, postpay. Sicuro via Stripe.',
+        PaymentMethod.satispay =>
+            'Pagamento istantaneo dall\'app Satispay.',
         PaymentMethod.bankTransfer =>
             'Versa l\'importo dal tuo conto e carica la ricevuta. 0% commissioni.',
         PaymentMethod.inStore =>
-            'Versa il 20% di caparra ora via bonifico. Il saldo lo paghi al ritiro.',
+            'Versa il 20% di caparra ora. Il saldo lo paghi al ritiro.',
       };
 
   static PaymentMethod fromKey(String? k) =>

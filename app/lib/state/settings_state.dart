@@ -5,6 +5,7 @@ class StoreSettings {
   final int dailyOrderLimit;
   final Map<String, String> messageTemplates;
   final int lateOrderHours; // an order in "inProduction" longer than this = late
+  final double shippingCost; // costo spedizione (€) in tutta Italia
 
   const StoreSettings({
     this.dailyOrderLimit = 20,
@@ -23,12 +24,14 @@ class StoreSettings {
       'cancelled': 'Ciao {{name}}, il tuo ordine {{code}} è stato annullato. Se hai dubbi contattaci al +39 335 169 7903.',
     },
     this.lateOrderHours = 48,
+    this.shippingCost = 5.90,
   });
 
   Map<String, dynamic> toFirestore() => {
         'dailyOrderLimit': dailyOrderLimit,
         'messageTemplates': messageTemplates,
         'lateOrderHours': lateOrderHours,
+        'shippingCost': shippingCost,
       };
 
   factory StoreSettings.fromFirestore(Map<String, dynamic> data) =>
@@ -37,6 +40,8 @@ class StoreSettings {
         messageTemplates: Map<String, String>.from(
             (data['messageTemplates'] as Map?) ?? const {}),
         lateOrderHours: (data['lateOrderHours'] as num?)?.toInt() ?? 48,
+        shippingCost:
+            (data['shippingCost'] as num?)?.toDouble() ?? 5.90,
       );
 }
 
@@ -66,6 +71,7 @@ class SettingsState extends ChangeNotifier {
       dailyOrderLimit: v,
       messageTemplates: _settings.messageTemplates,
       lateOrderHours: _settings.lateOrderHours,
+      shippingCost: _settings.shippingCost,
     );
     await _save();
   }
@@ -77,6 +83,7 @@ class SettingsState extends ChangeNotifier {
       dailyOrderLimit: _settings.dailyOrderLimit,
       messageTemplates: t,
       lateOrderHours: _settings.lateOrderHours,
+      shippingCost: _settings.shippingCost,
     );
     await _save();
   }
@@ -86,6 +93,17 @@ class SettingsState extends ChangeNotifier {
       dailyOrderLimit: _settings.dailyOrderLimit,
       messageTemplates: _settings.messageTemplates,
       lateOrderHours: v,
+      shippingCost: _settings.shippingCost,
+    );
+    await _save();
+  }
+
+  Future<void> updateShippingCost(double v) async {
+    _settings = StoreSettings(
+      dailyOrderLimit: _settings.dailyOrderLimit,
+      messageTemplates: _settings.messageTemplates,
+      lateOrderHours: _settings.lateOrderHours,
+      shippingCost: v,
     );
     await _save();
   }
