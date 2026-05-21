@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../data/mock_catalog.dart';
+import '../models/order.dart';
 import '../models/payment.dart';
 import '../state/auth_state.dart';
 import '../state/cart_state.dart';
 import '../state/orders_state.dart';
+import '../state/settings_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/product_image.dart';
 import 'checkout_screen.dart';
@@ -333,6 +335,22 @@ class _CartScreenState extends State<CartScreen> {
                       onPressed: _submitTestOrder,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  // PULSANTE TEST SPEDIZIONE: come sopra ma con shipping pre-compilato.
+                  // Rimuovere prima del lancio reale.
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: const Text(
+                          'Invia ordine TEST con SPEDIZIONE (bypass pagamento)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E8B57),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _submitTestShippingOrder,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -438,6 +456,135 @@ class _CartScreenState extends State<CartScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context); // cart già clear sopra
+              Navigator.pop(context);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// TEST con spedizione: invia ordine bypass pagamento +
+  /// shippingAddress pre-compilato (per vedere come si vede lato operatore).
+  /// Da rimuovere prima del lancio.
+  Future<void> _submitTestShippingOrder() async {
+    final user = authState.currentUser;
+    if (user == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: Color(0xFFD32F2F), size: 40),
+        title: const Text('MODALITÀ TEST — SPEDIZIONE'),
+        content: const Text(
+            'Stai per inviare un ordine SENZA PAGAMENTO con indirizzo '
+            'di spedizione fittizio.\n\n'
+            'L\'ordine sarà marcato come "TEST_BYPASS" in DB e apparirà '
+            'nel pannello Spedizioni lato operatore.\n\n'
+            'Procedere?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annulla')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E8B57),
+                foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sì, invia TEST con spedizione'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final palette = Theme.of(context).extension<SilvestrePalette>()!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: CircularProgressIndicator(color: palette.primary),
+      ),
+    );
+    // Indirizzo di TEST: dati anagrafici dal profilo + via fittizia
+    // Frattamaggiore
+    final testAddress = ShippingAddress(
+      fullName: user.displayName,
+      phone: user.phone ?? '+393000000000',
+      street: 'Via Roma',
+      streetNumber: '42',
+      zipCode: '80027',
+      city: 'Frattamaggiore',
+      province: 'NA',
+      notes: 'Indirizzo di TEST · citofono al 2° piano',
+    );
+    final shippingCost = settingsState.settings.shippingCost;
+    String pickupCode;
+    try {
+      pickupCode = await ordersState.submitOrder(
+        userId: user.id,
+        items: cartState.items,
+        customerNote: '[TEST SHIPPING] ${_noteController.text.trim()}'.trim(),
+        customerName: user.displayName,
+        customerPhone: user.phone,
+        payment: PaymentResult(
+          method: PaymentMethod.card,
+          paidNow: true,
+          transactionId: 'TEST_BYPASS_${DateTime.now().millisecondsSinceEpoch}',
+          lastFour: '4242',
+        ),
+        deliveryMethod: DeliveryMethod.shipping,
+        shippingAddress: testAddress,
+        shippingCost: shippingCost,
+      );
+      cartState.clear();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore invio TEST shipping: $e')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context); // close loader
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Ordine TEST con SPEDIZIONE inviato'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Indirizzo TEST fittizio salvato. Codice ritiro:'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: palette.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(pickupCode,
+                  style: TextStyle(
+                      fontFamily: 'Consolas',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: palette.primary)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Apri ora il pannello operatore → "Spedizioni" per vedere '
+              'l\'ordine con tutti i dati di consegna.',
+              style: TextStyle(
+                  fontSize: 12, color: palette.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
               Navigator.pop(context);
             },
             child: const Text('OK'),
